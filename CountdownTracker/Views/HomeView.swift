@@ -136,16 +136,69 @@ struct HomeView: View {
     }
 
     private var countdownList: some View {
-        List {
-            ForEach(sections) { section in
-                Section {
-                    sectionBody(section)
-                } header: {
-                    sectionHeader(section)
+        ScrollViewReader { proxy in
+            List {
+                ForEach(sections) { section in
+                    Section {
+                        sectionBody(section)
+                    } header: {
+                        sectionHeader(section)
+                    }
+                    .id(section.persistentModelID)
+                }
+            }
+            .listStyle(.insetGrouped)
+            .toolbar {
+                ToolbarItem(placement: .secondaryAction) {
+                    sectionJumperMenu(proxy: proxy)
                 }
             }
         }
-        .listStyle(.insetGrouped)
+    }
+
+    @ViewBuilder
+    private func sectionJumperMenu(proxy: ScrollViewProxy) -> some View {
+        Menu {
+            let anyExpanded = sections.contains { $0.isExpanded }
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    let newValue = !anyExpanded
+                    for section in sections {
+                        section.isExpanded = newValue
+                    }
+                }
+            } label: {
+                if anyExpanded {
+                    Label("Collapse All", systemImage: "chevron.up")
+                } else {
+                    Label("Expand All", systemImage: "chevron.down")
+                }
+            }
+            if !sections.isEmpty {
+                Divider()
+                Section("Jump to") {
+                    ForEach(sections) { section in
+                        Button {
+                            jumpTo(section, proxy: proxy)
+                        } label: {
+                            Label(section.name, systemImage: section.isLocked ? "lock.fill" : "folder")
+                        }
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "list.bullet.indent")
+        }
+    }
+
+    private func jumpTo(_ section: CountdownSection, proxy: ScrollViewProxy) {
+        // Expand if collapsed so there's something to reveal below the header.
+        if !section.isExpanded {
+            section.isExpanded = true
+        }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            proxy.scrollTo(section.persistentModelID, anchor: .top)
+        }
     }
 
     @ViewBuilder
