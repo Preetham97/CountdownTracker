@@ -10,6 +10,7 @@ struct HomeView: View {
     @State private var showAddSection = false
     @State private var sectionForNewItem: CountdownSection?
     @State private var itemToEdit: CountdownItem?
+    @State private var sectionToEdit: CountdownSection?
 
     var body: some View {
         NavigationStack {
@@ -39,6 +40,9 @@ struct HomeView: View {
             }
             .sheet(item: $itemToEdit) { item in
                 AddCountdownView(item: item)
+            }
+            .sheet(item: $sectionToEdit) { section in
+                AddSectionView(section: section)
             }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .background || newPhase == .inactive {
@@ -121,12 +125,21 @@ struct HomeView: View {
                 .textCase(nil)
                 .foregroundStyle(.primary)
             Spacer()
-            Button(role: .destructive) {
-                modelContext.delete(section)
+            Menu {
+                Button {
+                    sectionToEdit = section
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+                Button(role: .destructive) {
+                    modelContext.delete(section)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
             } label: {
-                Image(systemName: "trash")
-                    .font(.caption)
-                    .foregroundStyle(.red.opacity(0.8))
+                Image(systemName: "ellipsis.circle")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
         }
