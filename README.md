@@ -1,20 +1,23 @@
 # CountdownTracker
 
-A simple, native iOS app for tracking time remaining until important dates — bills, trips, birthdays, deadlines — organized into custom sections.
+A simple, native iOS app for tracking time remaining until important dates — bills, trips, birthdays, deadlines — organized into custom sections, with optional Face ID protection for sensitive entries.
 
 ## Features
 
-- **Sections** — Group related countdowns (e.g., "Work", "Travel", "Credit Cards")
-- **Live countdowns** — Real-time display of days, hours, minutes, and seconds remaining, updated every second
+- **Sections** — Group related countdowns (e.g., "Work", "Travel", "Credit Cards"). Rename, reconfigure, or delete at any time.
+- **Live countdowns** — Real-time display of days, hours, minutes, and seconds remaining, updated every second.
 - **Urgency color coding** — Row color shifts as the target approaches:
-  - Blue: more than 7 days away
+  - Green: more than 7 days away
   - Orange: less than 7 days
   - Red: less than 1 day
   - Grey: already passed
-- **Date + time precision** — Target a specific moment, not just a day
-- **Swipe to delete** — Remove individual countdowns or whole sections
-- **Input validation** — Empty titles and section names are rejected
-- **Local persistence** — Data stored on-device via SwiftData; no accounts, no network
+- **Face ID / Touch ID locking (per-section)** — Opt-in when creating or editing a section. Locked sections hide their contents until you authenticate; removing a lock itself requires authentication.
+- **Edit anything** — Tap a countdown to edit its title or date; use a section's menu (•••) to rename or toggle its lock.
+- **Safe section delete** — Deleting a section prompts for confirmation and tells you how many countdowns will be destroyed with it.
+- **Swipe to delete countdowns** — Individual countdowns delete instantly (iOS convention); sections are guarded by a confirmation dialog.
+- **Date + time precision** — Target a specific moment, not just a day.
+- **Input validation** — Empty titles and section names are rejected.
+- **Local persistence** — Data stored on-device via SwiftData; no accounts, no network.
 
 ## Requirements
 
@@ -22,6 +25,7 @@ A simple, native iOS app for tracking time remaining until important dates — b
 - iOS 18.0+
 - Swift 5.9+
 - Supported device families: iPhone, iPad, Apple Vision Pro
+- For Face ID locking: a device with biometrics or a passcode set
 
 ## Getting Started
 
@@ -32,21 +36,26 @@ A simple, native iOS app for tracking time remaining until important dates — b
 
 No dependencies, no package manager setup, no secrets.
 
+### Testing Face ID on the simulator
+
+In the iOS Simulator: **Features → Face ID → Enrolled**, then during the prompt use **Features → Face ID → Matching Face** to succeed or **Non-matching Face** to fail.
+
 ## Architecture
 
-The app follows a minimal MVVM-ish pattern with SwiftUI views reading directly from SwiftData via `@Query`. There is no separate view-model layer — the views are thin enough that one isn't needed.
+The app follows a minimal MVVM-ish pattern with SwiftUI views reading directly from SwiftData via `@Query`. A single `@Observable` class (`BiometricAuth`) tracks per-session unlock state and is injected via the SwiftUI environment. There is no separate view-model layer — the views are thin enough that one isn't needed.
 
 ```
 CountdownTracker/
-├── CountdownTrackerApp.swift    # @main entry, sets up ModelContainer
+├── CountdownTrackerApp.swift    # @main entry, ModelContainer + BiometricAuth
 ├── ContentView.swift            # Root view
 ├── Models/
 │   ├── CountdownItem.swift      # @Model: title, targetDate, section
-│   └── CountdownSection.swift   # @Model: name, sortOrder, items[]
+│   ├── CountdownSection.swift   # @Model: name, sortOrder, isLocked, items[]
+│   └── BiometricAuth.swift      # @Observable: Face ID / passcode gate
 └── Views/
-    ├── HomeView.swift           # Main sectioned list of countdowns
-    ├── AddSectionView.swift     # Modal form to create a section
-    ├── AddCountdownView.swift   # Modal form to add a countdown to a section
+    ├── HomeView.swift           # Main sectioned list with menus + confirmations
+    ├── AddSectionView.swift     # Create/edit section (name + Face ID toggle)
+    ├── AddCountdownView.swift   # Create/edit countdown (title + date)
     └── CountdownRow.swift       # Live-updating row with color-coded timer
 ```
 
@@ -55,6 +64,7 @@ CountdownTracker/
 **CountdownSection** (container)
 - `name: String`
 - `sortOrder: Int`
+- `isLocked: Bool` — when `true`, contents are hidden until unlocked via biometrics
 - `items: [CountdownItem]` — cascade delete
 
 **CountdownItem** (leaf)
@@ -70,14 +80,24 @@ SwiftData's `ModelContainer` is configured in [CountdownTrackerApp.swift](Countd
 
 ### Live Timer
 
-[CountdownRow.swift](CountdownTracker/Views/CountdownRow.swift) uses a `Timer` publisher to recompute time remaining every second and update its color based on how far the target date is.
+[CountdownRow.swift](CountdownTracker/Views/CountdownRow.swift) uses a `TimelineView(.periodic)` to recompute time remaining every second and update its color based on how far the target date is.
+
+### Biometric Locking
+
+[BiometricAuth.swift](CountdownTracker/Models/BiometricAuth.swift) wraps `LAContext` with an async `unlock(_:reason:)` API using `.deviceOwnerAuthentication` (Face ID → Touch ID → device passcode fallback). Unlocked sections are tracked by `PersistentIdentifier` in memory and cleared on app backgrounding via `scenePhase` observation in `HomeView`. A locked section's name remains visible but its items render as a single "Tap to unlock" row.
+
+The usage string is declared via the `INFOPLIST_KEY_NSFaceIDUsageDescription` build setting ("Use Face ID to unlock protected sections.").
 
 ## Design Choices
 
 - **SwiftData over Core Data** — Less boilerplate, better SwiftUI integration, sufficient for a single-user local app.
 - **No view-model layer** — Views are simple enough that adding one would be over-engineering.
-- **No networking, no auth** — Keeps the app offline-first and private by default.
-- **Native components only** — Standard `List`, `Form`, `DatePicker`, and navigation patterns keep the UI predictable and accessible.
+- **Per-section locking, not per-app** — Some countdowns aren't sensitive (birthdays); others are (credit card payments). Always-on app locking would be wrong for a reference app you glance at frequently.
+- **Lock lifetime = foreground session** — Standard banking-app pattern. Unlock persists until the app backgrounds, then re-locks.
+- **Disabling a lock requires auth** — Otherwise anyone holding an unlocked phone could trivially strip protection.
+- **Section delete is confirmed, countdown delete is not** — Matches iOS conventions (Mail, Reminders): destructive bulk actions confirm; swipe-to-delete on individual items stays instant.
+- **No networking, no auth accounts** — Offline-first, private by default.
+- **Native components only** — Standard `List`, `Form`, `DatePicker`, `Menu`, and `confirmationDialog` keep the UI predictable and accessible.
 
 ## Testing
 
@@ -93,3 +113,4 @@ Run tests with `⌘U` in Xcode.
 - iCloud sync across devices
 - Recurring countdowns (birthdays, anniversaries)
 - Customizable color themes per section
+- Reordering sections via drag-and-drop
