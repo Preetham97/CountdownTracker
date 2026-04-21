@@ -55,6 +55,7 @@ struct HomeView: View {
                 presenting: sectionToDelete
             ) { section in
                 Button("Delete Section", role: .destructive) {
+                    NotificationScheduler.cancelAll(in: section)
                     modelContext.delete(section)
                     sectionToDelete = nil
                 }
@@ -157,6 +158,7 @@ struct HomeView: View {
                     .onTapGesture { itemToEdit = item }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
+                            NotificationScheduler.cancel(for: item)
                             modelContext.delete(item)
                         } label: {
                             Label("Delete", systemImage: "trash")

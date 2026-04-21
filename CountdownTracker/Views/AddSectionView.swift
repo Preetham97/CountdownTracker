@@ -88,8 +88,14 @@ struct AddSectionView: View {
                     return
                 }
             }
+            let lockChanged = section.isLocked != requireFaceID
             section.name = trimmed
             section.isLocked = requireFaceID
+            // Lock state affects notification privacy — reschedule so the
+            // body text (with or without the item title) matches.
+            if lockChanged {
+                NotificationScheduler.rescheduleAll(in: section)
+            }
         } else {
             let section = CountdownSection(
                 name: trimmed,

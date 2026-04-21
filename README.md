@@ -14,6 +14,7 @@ A simple, native iOS app for tracking time remaining until important dates — b
   - Red: less than 1 day
   - Grey: already passed
 - **Face ID / Touch ID locking (per-section)** — Opt-in when creating or editing a section. Locked sections hide their contents until you authenticate; removing a lock itself requires authentication.
+- **Opt-in notifications** — Each countdown can schedule local reminders at 15 days, 1 week, and/or 1 day before its deadline. Defaults to 1-day-only so users aren't bombarded; turn the others on per-countdown if you want earlier heads-ups. Reminders fire at the exact time-of-day of the deadline. For items in Face ID–locked sections, the notification shows the section name but hides the countdown title.
 - **Edit anything** — Tap a countdown to edit its title or date; use a section's menu (•••) to rename or toggle its lock.
 - **Safe section delete** — Deleting a section prompts for confirmation and tells you how many countdowns will be destroyed with it.
 - **Swipe to delete countdowns** — Individual countdowns delete instantly (iOS convention); sections are guarded by a confirmation dialog.
@@ -54,6 +55,8 @@ CountdownTracker/
 │   ├── CountdownItem.swift      # @Model: title, targetDate, section
 │   ├── CountdownSection.swift   # @Model: name, sortOrder, isLocked, items[]
 │   └── BiometricAuth.swift      # @Observable: Face ID / passcode gate
+├── Services/
+│   └── NotificationScheduler.swift  # Local notifications (UNUserNotificationCenter)
 └── Views/
     ├── HomeView.swift           # Main sectioned list with menus + confirmations
     ├── AddSectionView.swift     # Create/edit section (name + Face ID toggle)
@@ -74,6 +77,7 @@ CountdownTracker/
 - `title: String`
 - `targetDate: Date`
 - `section: CountdownSection?` — inverse relationship
+- `notify15d`, `notify7d`, `notify1d: Bool` — per-countdown notification opt-ins (default: 1d only)
 
 Deleting a section cascades to its countdowns.
 
@@ -95,6 +99,14 @@ SwiftData's `ModelContainer` is configured in [CountdownTrackerApp.swift](Countd
 
 The usage string is declared via the `INFOPLIST_KEY_NSFaceIDUsageDescription` build setting ("Use Face ID to unlock protected sections.").
 
+### Notifications
+
+[NotificationScheduler.swift](CountdownTracker/Services/NotificationScheduler.swift) wraps `UNUserNotificationCenter`. Each countdown can schedule up to three local reminders (15d / 7d / 1d before) using deterministic identifiers (`<item-hash>-<offset>`) so rescheduling is idempotent and cancellation is just `removePendingNotificationRequests(withIdentifiers:)`. Notifications fire via `UNCalendarNotificationTrigger` at the exact time-of-day of the deadline.
+
+Authorization is requested lazily — on the first save where any notification opt-in is enabled — rather than at launch, to avoid a cold-start prompt before the user has seen the app.
+
+Privacy for locked sections: the notification title is the section name (non-sensitive) and the body is scrubbed to `"A countdown is 7 days away"` rather than revealing the item title. Toggling a section's lock flag reschedules all its items so the content matches the new privacy setting.
+
 ## Design Choices
 
 - **SwiftData over Core Data** — Less boilerplate, better SwiftUI integration, sufficient for a single-user local app.
@@ -105,6 +117,7 @@ The usage string is declared via the `INFOPLIST_KEY_NSFaceIDUsageDescription` bu
 - **Section delete is confirmed, countdown delete is not** — Matches iOS conventions (Mail, Reminders): destructive bulk actions confirm; swipe-to-delete on individual items stays instant.
 - **No networking, no auth accounts** — Offline-first, private by default.
 - **Native components only** — Standard `List`, `Form`, `DatePicker`, `Menu`, and `confirmationDialog` keep the UI predictable and accessible.
+- **Local notifications, opt-in per countdown** — Three reminders (15d/7d/1d) would be noisy by default and would quickly hit iOS's 64-pending cap. Defaulting to 1-day-before and letting users opt in to earlier pings respects attention and stays well under the limit.
 
 ## Testing
 
@@ -115,7 +128,6 @@ Run tests with `⌘U` in Xcode.
 
 ## Roadmap Ideas
 
-- Notifications when a countdown is about to hit zero
 - Home Screen and Lock Screen widgets
 - iCloud sync across devices
 - Recurring countdowns (birthdays, anniversaries)
