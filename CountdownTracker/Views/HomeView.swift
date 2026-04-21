@@ -165,23 +165,28 @@ private struct SectionSummaryRow: View {
     @ViewBuilder
     private var leadingIcon: some View {
         if section.isLocked {
-            // Tappable lock icon. Unlocked → tap to manually re-lock (Notes
-            // app pattern). Locked → tap passes through; the row's
-            // NavigationLink will trigger and the detail view handles auth.
-            Button {
-                if isUnlocked {
+            if isUnlocked {
+                // Tappable: re-lock on demand (Notes-app pattern).
+                Button {
                     auth.lock(section)
+                } label: {
+                    Image(systemName: "lock.open.fill")
+                        .font(.title3)
+                        .foregroundStyle(Color.green)
+                        .frame(width: 28)
+                        .contentShape(Rectangle())
                 }
-            } label: {
-                Image(systemName: isUnlocked ? "lock.open.fill" : "lock.fill")
+                .buttonStyle(.plain)
+                .accessibilityLabel("Lock \(section.name)")
+            } else {
+                // Plain image — don't intercept the tap so the row's
+                // NavigationLink still triggers and Face ID prompts.
+                // Using .orange with full opacity so it reads clearly.
+                Image(systemName: "lock.fill")
                     .font(.title3)
-                    .foregroundStyle(isUnlocked ? Color.green : .orange)
+                    .foregroundStyle(Color.orange)
                     .frame(width: 28)
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .disabled(!isUnlocked)
-            .accessibilityLabel(isUnlocked ? "Lock \(section.name)" : "\(section.name) is locked")
         } else {
             Image(systemName: "folder.fill")
                 .font(.title3)
@@ -191,9 +196,6 @@ private struct SectionSummaryRow: View {
     }
 
     private var summary: String {
-        if section.isLocked && !auth.isUnlocked(section) {
-            return "Locked"
-        }
         let active = section.items
             .filter { !$0.isCompleted && $0.targetDate > now }
             .sorted { $0.targetDate < $1.targetDate }

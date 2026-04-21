@@ -4,7 +4,7 @@ A simple, native iOS app for tracking time remaining until important dates — b
 
 ## Features
 
-- **Sections list + detail** — The home screen is a compact list of every section, each showing a one-liner preview (*"3 active · next in 2d"* or *"All cleared"* or *"Locked"*). Tap a section to push into its detail page with the full countdown list, back button to return. Keeps the overview scannable no matter how many items any one section holds.
+- **Sections list + detail** — The home screen is a compact list of every section, each showing a one-liner preview (*"3 active · next in 2d"* or *"All cleared"* or *"Empty"*). Locked sections show the same preview so you know what's coming up without having to unlock first; only the individual countdown titles are gated. Tap a section to push into its detail page with the full countdown list, back button to return.
 - **Live countdowns** — Real-time display of days, hours, minutes, and seconds remaining, updated every second.
 - **Auto-ordering by urgency** — Within each section, active upcoming deadlines are sorted closest-first (most urgent at top). Completed and past-deadline items drop into a collapsible "Completed" sub-bucket below, newest-first. Re-evaluates every minute, so rows migrate between buckets as deadlines tick by.
 - **Mark as done** — Tap the circle at the start of any row (Reminders-style) to complete it before the deadline. Completed items strike through, grey out, move to the Completed bucket, and have their pending notifications cancelled. Tap the filled checkmark — or left-swipe the row — to reopen (restores notifications if the deadline is still ahead).
