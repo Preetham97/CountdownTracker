@@ -5,43 +5,70 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \CountdownSection.sortOrder) private var sections: [CountdownSection]
 
+    @State private var selectedSection: CountdownSection?
     @State private var showAddSection = false
-    @State private var sectionForNewItem: CountdownSection?
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if sections.isEmpty {
-                    emptyState
-                } else {
-                    countdownList
-                }
+        NavigationSplitView {
+            sidebar
+        } detail: {
+            if let section = selectedSection {
+                SectionDetailView(section: section)
+            } else {
+                detailPlaceholder
             }
-            .navigationTitle("Countdowns")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showAddSection = true
+        }
+        .sheet(isPresented: $showAddSection) {
+            AddSectionView()
+        }
+    }
+
+    // MARK: - Sidebar
+
+    private var sidebar: some View {
+        List(selection: $selectedSection) {
+            ForEach(sections) { section in
+                NavigationLink(value: section) {
+                    HStack {
+                        Label(section.name, systemImage: "folder")
+                        Spacer()
+                        Text("\(section.items.count)")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        delete(section)
                     } label: {
-                        Image(systemName: "folder.badge.plus")
-                            .fontWeight(.semibold)
+                        Label("Delete", systemImage: "trash")
                     }
                 }
             }
-            .sheet(isPresented: $showAddSection) {
-                AddSectionView()
+        }
+        .navigationTitle("Sections")
+        .overlay {
+            if sections.isEmpty {
+                sidebarEmptyState
             }
-            .sheet(item: $sectionForNewItem) { section in
-                AddCountdownView(section: section)
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showAddSection = true
+                } label: {
+                    Image(systemName: "folder.badge.plus")
+                        .fontWeight(.semibold)
+                }
             }
         }
     }
 
-    private var emptyState: some View {
+    private var sidebarEmptyState: some View {
         ContentUnavailableView {
-            Label("No Countdowns", systemImage: "calendar.badge.clock")
+            Label("No Sections", systemImage: "folder")
         } description: {
-            Text("Tap the folder button to create your first section.")
+            Text("Create a section to start adding countdowns.")
         } actions: {
             Button("Add Section") {
                 showAddSection = true
@@ -50,18 +77,50 @@ struct HomeView: View {
         }
     }
 
-    private var countdownList: some View {
-        List {
-            ForEach(sections) { section in
-                Section {
-                    let sorted = section.items.sorted { $0.targetDate < $1.targetDate }
-                    if sorted.isEmpty {
-                        Text("No countdowns yet")
-                            .foregroundStyle(.tertiary)
-                            .font(.subheadline)
-                            .padding(.vertical, 4)
+    private var detailPlaceholder: some View {
+        ContentUnavailableView(
+            "Select a Section",
+            systemImage: "sidebar.left",
+            description: Text("Pick a section from the sidebar to see its countdowns.")
+        )
+    }
+
+    private func delete(_ section: CountdownSection) {
+        if selectedSection == section {
+            selectedSection = nil
+        }
+        modelContext.delete(section)
+    }
+}
+
+// MARK: - Section detail
+
+struct SectionDetailView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Bindable var section: CountdownSection
+
+    @State private var showAddCountdown = false
+
+    private var sortedItems: [CountdownItem] {
+        section.items.sorted { $0.targetDate < $1.targetDate }
+    }
+
+    var body: some View {
+        Group {
+            if sortedItems.isEmpty {
+                ContentUnavailableView {
+                    Label("No Countdowns", systemImage: "calendar.badge.clock")
+                } description: {
+                    Text("Add your first countdown to this section.")
+                } actions: {
+                    Button("Add Countdown") {
+                        showAddCountdown = true
                     }
-                    ForEach(sorted) { item in
+                    .buttonStyle(.borderedProminent)
+                }
+            } else {
+                List {
+                    ForEach(sortedItems) { item in
                         CountdownRow(item: item)
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button(role: .destructive) {
@@ -71,33 +130,24 @@ struct HomeView: View {
                                 }
                             }
                     }
-                    Button {
-                        sectionForNewItem = section
-                    } label: {
-                        Label("Add Countdown", systemImage: "plus")
-                            .font(.subheadline)
-                            .foregroundStyle(.blue)
-                    }
-                } header: {
-                    HStack {
-                        Text(section.name)
-                            .font(.headline)
-                            .textCase(nil)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Button(role: .destructive) {
-                            modelContext.delete(section)
-                        } label: {
-                            Image(systemName: "trash")
-                                .font(.caption)
-                                .foregroundStyle(.red.opacity(0.8))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.vertical, 2)
+                }
+                .listStyle(.insetGrouped)
+            }
+        }
+        .navigationTitle(section.name)
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showAddCountdown = true
+                } label: {
+                    Image(systemName: "plus")
+                        .fontWeight(.semibold)
                 }
             }
         }
-        .listStyle(.insetGrouped)
+        .sheet(isPresented: $showAddCountdown) {
+            AddCountdownView(section: section)
+        }
     }
 }
