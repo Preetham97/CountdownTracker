@@ -12,6 +12,9 @@ struct HomeView: View {
     @State private var itemToEdit: CountdownItem?
     @State private var sectionToEdit: CountdownSection?
     @State private var sectionToDelete: CountdownSection?
+    @State private var now: Date = .now
+
+    private let reorderTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     var body: some View {
         NavigationStack {
@@ -65,8 +68,26 @@ struct HomeView: View {
                 if newPhase == .background || newPhase == .inactive {
                     auth.lockAll()
                 }
+                if newPhase == .active {
+                    now = .now
+                }
+            }
+            .onReceive(reorderTimer) { tick in
+                now = tick
             }
         }
+    }
+
+    /// Upcoming items closest-first, followed by past items most-recent-first.
+    /// Recomputed whenever `now` ticks forward (every 60s or on resume).
+    private func orderedItems(for section: CountdownSection) -> [CountdownItem] {
+        let upcoming = section.items
+            .filter { $0.targetDate > now }
+            .sorted { $0.targetDate < $1.targetDate }
+        let past = section.items
+            .filter { $0.targetDate <= now }
+            .sorted { $0.targetDate > $1.targetDate }
+        return upcoming + past
     }
 
     private var deleteDialogBinding: Binding<Bool> {
@@ -121,14 +142,14 @@ struct HomeView: View {
         if section.isLocked && !auth.isUnlocked(section) {
             LockedSectionRow(section: section)
         } else {
-            let sorted = section.items.sorted { $0.targetDate < $1.targetDate }
-            if sorted.isEmpty {
+            let ordered = orderedItems(for: section)
+            if ordered.isEmpty {
                 Text("No countdowns yet")
                     .foregroundStyle(.tertiary)
                     .font(.subheadline)
                     .padding(.vertical, 4)
             }
-            ForEach(sorted) { item in
+            ForEach(ordered) { item in
                 CountdownRow(item: item)
                     .contentShape(Rectangle())
                     .onTapGesture { itemToEdit = item }
