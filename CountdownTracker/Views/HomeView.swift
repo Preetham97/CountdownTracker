@@ -190,29 +190,42 @@ struct HomeView: View {
 
     @ViewBuilder
     private func row(for item: CountdownItem) -> some View {
-        CountdownRow(item: item)
-            .contentShape(Rectangle())
-            .onTapGesture { itemToEdit = item }
-            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                Button {
-                    toggleCompletion(item)
-                } label: {
-                    if item.isCompleted {
-                        Label("Reopen", systemImage: "arrow.uturn.backward")
-                    } else {
-                        Label("Done", systemImage: "checkmark")
-                    }
-                }
-                .tint(item.isCompleted ? .gray : .green)
+        HStack(spacing: 12) {
+            Button {
+                toggleCompletion(item)
+            } label: {
+                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(item.isCompleted ? Color.green.opacity(0.7) : .secondary)
+                    .contentShape(Circle())
             }
-            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                Button(role: .destructive) {
-                    NotificationScheduler.cancel(for: item)
-                    modelContext.delete(item)
-                } label: {
-                    Label("Delete", systemImage: "trash")
+            .buttonStyle(.plain)
+            .accessibilityLabel(item.isCompleted ? "Reopen \(item.title)" : "Mark \(item.title) as done")
+
+            CountdownRow(item: item)
+                .contentShape(Rectangle())
+                .onTapGesture { itemToEdit = item }
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            Button {
+                toggleCompletion(item)
+            } label: {
+                if item.isCompleted {
+                    Label("Reopen", systemImage: "arrow.uturn.backward")
+                } else {
+                    Label("Done", systemImage: "checkmark")
                 }
             }
+            .tint(item.isCompleted ? .gray : .green)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                NotificationScheduler.cancel(for: item)
+                modelContext.delete(item)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
     }
 
     @ViewBuilder
