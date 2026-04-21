@@ -88,6 +88,16 @@ enum NotificationScheduler {
         let sectionName = item.section?.name ?? ""
         let now = Date()
 
+        // Skip entirely if the deadline has already passed.
+        guard item.targetDate > now else { return }
+
+        // Partition: offsets whose fire date is still in the future schedule
+        // normally; offsets whose fire date has passed (but the deadline is
+        // still in the future) mean "we missed this reminder window — fire
+        // an immediate catch-up so the user knows time is tight."
+        var futureScheduled: [(Offset, Date)] = []
+        var overdueOffsets: [Offset] = []
+
         for offset in enabledOffsets {
             guard let fireDate = Calendar.current.date(
                 byAdding: .day,
@@ -95,25 +105,26 @@ enum NotificationScheduler {
                 to: item.targetDate
             ) else { continue }
 
-            // Skip past fire dates — the notification would never deliver anyway.
-            guard fireDate > now else { continue }
-
-            let content = UNMutableNotificationContent()
-            if isLocked {
-                content.title = sectionName.isEmpty ? "Countdown" : sectionName
-                content.body = "A countdown is \(offset.phrase)"
+            if fireDate > now {
+                futureScheduled.append((offset, fireDate))
             } else {
-                content.title = item.title
-                content.body = "\(item.title) is \(offset.phrase)"
+                overdueOffsets.append(offset)
             }
-            content.sound = .default
+        }
 
+        // Schedule any offsets still in the future at their exact fire time.
+        for (offset, fireDate) in futureScheduled {
+            let content = buildContent(
+                for: item,
+                offset: offset,
+                isLocked: isLocked,
+                sectionName: sectionName
+            )
             let components = Calendar.current.dateComponents(
                 [.year, .month, .day, .hour, .minute, .second],
                 from: fireDate
             )
             let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-
             let request = UNNotificationRequest(
                 identifier: "\(itemID)-\(offset.identifierSuffix)",
                 content: content,
@@ -121,12 +132,75 @@ enum NotificationScheduler {
             )
             center.add(request)
         }
+
+        // Fire exactly one immediate catch-up for the tightest overdue offset
+        // (smallest days value). Firing all three would spam with redundant
+        // pings — e.g. "a week away" and "tomorrow" for the same 5-min deadline.
+        if let tightest = overdueOffsets.min(by: { $0.rawValue < $1.rawValue }) {
+            let content = UNMutableNotificationContent()
+            let phrase = imminentPhrase(until: item.targetDate, now: now)
+            if isLocked {
+                content.title = sectionName.isEmpty ? "Countdown" : sectionName
+                content.body = "A countdown is \(phrase)"
+            } else {
+                content.title = item.title
+                content.body = "\(item.title) is \(phrase)"
+            }
+            content.sound = .default
+            // 1-second trigger rather than `nil` — trigger-less requests can
+            // be suppressed when the app is foregrounded, which we don't want.
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            let request = UNNotificationRequest(
+                identifier: "\(itemID)-\(tightest.identifierSuffix)-now",
+                content: content,
+                trigger: trigger
+            )
+            center.add(request)
+        }
+    }
+
+    /// Human-readable "how close is it?" string for the immediate catch-up
+    /// notification — more accurate than the fixed per-offset phrase when
+    /// the deadline is only minutes or hours away.
+    private static func imminentPhrase(until target: Date, now: Date) -> String {
+        let secs = target.timeIntervalSince(now)
+        if secs < 60 { return "less than a minute away" }
+        let minutes = Int(secs / 60)
+        if minutes < 60 {
+            return minutes == 1 ? "in 1 minute" : "in \(minutes) minutes"
+        }
+        let hours = Int(secs / 3600)
+        if hours < 24 {
+            return hours == 1 ? "in 1 hour" : "in \(hours) hours"
+        }
+        let days = Int(secs / 86400)
+        return days == 1 ? "in 1 day" : "in \(days) days"
+    }
+
+    private static func buildContent(
+        for item: CountdownItem,
+        offset: Offset,
+        isLocked: Bool,
+        sectionName: String
+    ) -> UNMutableNotificationContent {
+        let content = UNMutableNotificationContent()
+        if isLocked {
+            content.title = sectionName.isEmpty ? "Countdown" : sectionName
+            content.body = "A countdown is \(offset.phrase)"
+        } else {
+            content.title = item.title
+            content.body = "\(item.title) is \(offset.phrase)"
+        }
+        content.sound = .default
+        return content
     }
 
     /// Cancel all pending notifications for a single item.
     static func cancel(for item: CountdownItem) {
         let itemID = stableID(for: item)
-        let ids = Offset.allCases.map { "\(itemID)-\($0.identifierSuffix)" }
+        var ids = Offset.allCases.map { "\(itemID)-\($0.identifierSuffix)" }
+        // Also sweep any immediate-catch-up requests that might still be pending.
+        ids.append(contentsOf: Offset.allCases.map { "\(itemID)-\($0.identifierSuffix)-now" })
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
     }
 
