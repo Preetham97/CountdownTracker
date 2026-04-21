@@ -187,6 +187,11 @@ struct SectionDetailView: View {
                 .contentShape(Rectangle())
                 .onTapGesture { itemToEdit = item }
         }
+        .listRowBackground(
+            itemToDelete?.persistentModelID == item.persistentModelID
+                ? Color.red.opacity(0.12)
+                : Color(.secondarySystemGroupedBackground)
+        )
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             Button {
                 toggleCompletion(item)

@@ -80,6 +80,11 @@ struct HomeView: View {
                 NavigationLink(value: section) {
                     SectionSummaryRow(section: section, now: now)
                 }
+                .listRowBackground(
+                    sectionToDelete?.persistentModelID == section.persistentModelID
+                        ? Color.red.opacity(0.12)
+                        : Color(.secondarySystemGroupedBackground)
+                )
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     // No destructive role — avoids iOS's premature row-removal
                     // animation before the confirmation dialog fires.
