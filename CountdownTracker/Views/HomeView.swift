@@ -81,11 +81,14 @@ struct HomeView: View {
                     SectionSummaryRow(section: section, now: now)
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
+                    // No destructive role — avoids iOS's premature row-removal
+                    // animation before the confirmation dialog fires.
+                    Button {
                         sectionToDelete = section
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
+                    .tint(.red)
                     Button {
                         sectionToEdit = section
                     } label: {

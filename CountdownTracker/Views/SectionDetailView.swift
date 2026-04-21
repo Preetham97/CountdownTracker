@@ -200,11 +200,15 @@ struct SectionDetailView: View {
             .tint(item.isCompleted ? .gray : .green)
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
+            // No `role: .destructive` — that triggers iOS's automatic
+            // row-removal animation before the confirmation even fires,
+            // which makes the row flicker if the user cancels.
+            Button {
                 itemToDelete = item
             } label: {
                 Label("Delete", systemImage: "trash")
             }
+            .tint(.red)
         }
     }
 
