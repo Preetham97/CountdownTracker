@@ -17,8 +17,7 @@ A simple, native iOS app for tracking time remaining until important dates — b
 - **Face ID / Touch ID locking (per-section)** — Opt-in when creating or editing a section. Locked sections hide their contents until you authenticate; removing a lock itself requires authentication. After unlocking, the home-list lock icon turns green + open — tap it to re-lock on demand without backgrounding the app (Notes-app pattern). All unlocked sections re-lock automatically when the app goes to the background.
 - **Opt-in notifications** — Each countdown can schedule local reminders at 15 days, 1 week, and/or 1 day before its deadline. Defaults to 1-day-only so users aren't bombarded; turn the others on per-countdown if you want earlier heads-ups. Reminders fire at the exact time-of-day of the deadline. For items in Face ID–locked sections, the notification shows the section name but hides the countdown title.
 - **Edit anything** — Tap a countdown in the detail view to edit its title/date; use the detail view's menu (•••) to rename the section, toggle its lock, or delete it. Swipe actions on the home list give shortcuts for Edit/Delete Section.
-- **Safe section delete** — Deleting a section prompts for confirmation and tells you how many countdowns will be destroyed with it.
-- **Swipe to delete countdowns** — Individual countdowns delete instantly (iOS convention); sections are guarded by a confirmation dialog.
+- **Safe deletes** — Both section and countdown deletes prompt for confirmation. Section deletes tell you how many countdowns will be destroyed with them.
 - **Date + time precision** — Target a specific moment, not just a day.
 - **Input validation** — Empty titles and section names are rejected.
 - **Local persistence** — Data stored on-device via SwiftData; no accounts, no network.
@@ -121,7 +120,7 @@ Privacy for locked sections: the notification title is the section name (non-sen
 - **Per-section locking, not per-app** — Some countdowns aren't sensitive (birthdays); others are (credit card payments). Always-on app locking would be wrong for a reference app you glance at frequently.
 - **Lock lifetime = foreground session** — Standard banking-app pattern. Unlock persists until the app backgrounds, then re-locks.
 - **Disabling a lock requires auth** — Otherwise anyone holding an unlocked phone could trivially strip protection.
-- **Section delete is confirmed, countdown delete is not** — Matches iOS conventions (Mail, Reminders): destructive bulk actions confirm; swipe-to-delete on individual items stays instant.
+- **Destructive actions confirm** — Both section and countdown deletes route through a confirmation dialog. Accidentally swiping away a countdown you cared about (especially one you've been watching for months) is much worse than an extra tap.
 - **No networking, no auth accounts** — Offline-first, private by default.
 - **Native components only** — Standard `List`, `Form`, `DatePicker`, `Menu`, and `confirmationDialog` keep the UI predictable and accessible.
 - **Local notifications, opt-in per countdown** — Three reminders (15d/7d/1d) would be noisy by default and would quickly hit iOS's 64-pending cap. Defaulting to 1-day-before and letting users opt in to earlier pings respects attention and stays well under the limit.

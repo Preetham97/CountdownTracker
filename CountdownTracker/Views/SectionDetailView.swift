@@ -15,6 +15,7 @@ struct SectionDetailView: View {
     @State private var itemToEdit: CountdownItem?
     @State private var showEditSection = false
     @State private var confirmDelete = false
+    @State private var itemToDelete: CountdownItem?
     @State private var now: Date = .now
 
     private let reorderTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
@@ -78,6 +79,23 @@ struct SectionDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(deleteMessage)
+        }
+        .confirmationDialog(
+            itemToDelete.map { "Delete \"\($0.title)\"?" } ?? "",
+            isPresented: itemDeleteBinding,
+            titleVisibility: .visible,
+            presenting: itemToDelete
+        ) { item in
+            Button("Delete", role: .destructive) {
+                NotificationScheduler.cancel(for: item)
+                modelContext.delete(item)
+                itemToDelete = nil
+            }
+            Button("Cancel", role: .cancel) {
+                itemToDelete = nil
+            }
+        } message: { _ in
+            Text("This countdown will be permanently removed.")
         }
         .onReceive(reorderTimer) { tick in
             now = tick
@@ -181,10 +199,9 @@ struct SectionDetailView: View {
             }
             .tint(item.isCompleted ? .gray : .green)
         }
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
-                NotificationScheduler.cancel(for: item)
-                modelContext.delete(item)
+                itemToDelete = item
             } label: {
                 Label("Delete", systemImage: "trash")
             }
@@ -207,6 +224,13 @@ struct SectionDetailView: View {
                 let r = rhs.completedAt ?? rhs.targetDate
                 return l > r
             }
+    }
+
+    private var itemDeleteBinding: Binding<Bool> {
+        Binding(
+            get: { itemToDelete != nil },
+            set: { if !$0 { itemToDelete = nil } }
+        )
     }
 
     private var deleteMessage: String {
