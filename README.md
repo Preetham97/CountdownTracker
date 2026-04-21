@@ -4,12 +4,11 @@ A simple, native iOS app for tracking time remaining until important dates — b
 
 ## Features
 
-- **Sections** — Group related countdowns (e.g., "Work", "Travel", "Credit Cards"). Rename, reconfigure, or delete at any time.
+- **Sections list + detail** — The home screen is a compact list of every section, each showing a one-liner preview (*"3 active · next in 2d"* or *"All cleared"* or *"Locked"*). Tap a section to push into its detail page with the full countdown list, back button to return. Keeps the overview scannable no matter how many items any one section holds.
 - **Live countdowns** — Real-time display of days, hours, minutes, and seconds remaining, updated every second.
 - **Auto-ordering by urgency** — Within each section, active upcoming deadlines are sorted closest-first (most urgent at top). Completed and past-deadline items drop into a collapsible "Completed" sub-bucket below, newest-first. Re-evaluates every minute, so rows migrate between buckets as deadlines tick by.
 - **Mark as done** — Tap the circle at the start of any row (Reminders-style) to complete it before the deadline. Completed items strike through, grey out, move to the Completed bucket, and have their pending notifications cancelled. Tap the filled checkmark — or left-swipe the row — to reopen (restores notifications if the deadline is still ahead).
-- **Collapsible sections** — Tap a section header (or its chevron) to collapse or expand it. Collapsed headers show the item count and a preview of the next upcoming deadline (e.g. *"5 countdowns · next in 2d"*). Expansion state persists across launches per section. Locked sections hide the preview until unlocked.
-- **Section jumper** — When a section has a lot of items, scrolling past it is a chore. A toolbar menu (`list.bullet.indent`) lists every section — tap a name to scroll straight to it (auto-expands if collapsed). The same menu has one-tap **Collapse All / Expand All** for a bird's-eye view.
+- **Collapsible Completed bucket** — Inside a section's detail, completed and past-deadline items tuck under a *"Completed · N"* row you can expand or collapse. Default collapsed so active items stay at the top.
 - **Urgency color coding** — Row color shifts as the target approaches:
   - Green: more than 7 days away
   - Orange: less than 7 days
@@ -17,7 +16,7 @@ A simple, native iOS app for tracking time remaining until important dates — b
   - Grey: already passed
 - **Face ID / Touch ID locking (per-section)** — Opt-in when creating or editing a section. Locked sections hide their contents until you authenticate; removing a lock itself requires authentication.
 - **Opt-in notifications** — Each countdown can schedule local reminders at 15 days, 1 week, and/or 1 day before its deadline. Defaults to 1-day-only so users aren't bombarded; turn the others on per-countdown if you want earlier heads-ups. Reminders fire at the exact time-of-day of the deadline. For items in Face ID–locked sections, the notification shows the section name but hides the countdown title.
-- **Edit anything** — Tap a countdown to edit its title or date; use a section's menu (•••) to rename or toggle its lock.
+- **Edit anything** — Tap a countdown in the detail view to edit its title/date; use the detail view's menu (•••) to rename the section, toggle its lock, or delete it. Swipe actions on the home list give shortcuts for Edit/Delete Section.
 - **Safe section delete** — Deleting a section prompts for confirmation and tells you how many countdowns will be destroyed with it.
 - **Swipe to delete countdowns** — Individual countdowns delete instantly (iOS convention); sections are guarded by a confirmation dialog.
 - **Date + time precision** — Target a specific moment, not just a day.
@@ -60,9 +59,10 @@ CountdownTracker/
 ├── Services/
 │   └── NotificationScheduler.swift  # Local notifications (UNUserNotificationCenter)
 └── Views/
-    ├── HomeView.swift           # Main sectioned list with menus + confirmations
+    ├── HomeView.swift           # Top-level list of section summary rows (navigates to detail)
+    ├── SectionDetailView.swift  # Per-section page: Active + Completed buckets, toolbar
     ├── AddSectionView.swift     # Create/edit section (name + Face ID toggle)
-    ├── AddCountdownView.swift   # Create/edit countdown (title + date)
+    ├── AddCountdownView.swift   # Create/edit countdown (title + date + notifications)
     └── CountdownRow.swift       # Live-updating row with color-coded timer
 ```
 
@@ -96,7 +96,7 @@ SwiftData's `ModelContainer` is configured in [CountdownTrackerApp.swift](Countd
 
 ### Ordering
 
-[HomeView.swift](CountdownTracker/Views/HomeView.swift) partitions each section's items into **active** (not completed, deadline in the future — sorted ascending) and **completed/past** (user-marked-done or past-deadline — sorted by `completedAt ?? targetDate` descending). Active rows render first; the completed bucket is shown under a collapsible "Completed · N" sub-header inside the same section. A 60-second `Timer.publish` keeps a `now` state variable fresh so the partition re-runs as deadlines cross without the user navigating away. `scenePhase` observation also refreshes `now` on app resume.
+The home screen is a flat list of section summaries. Tapping a row pushes `SectionDetailView` onto the `NavigationStack` (locked sections land on a Face ID gate that auto-prompts, unlocking in place). The detail view partitions items into **active** (not completed, deadline in the future — sorted ascending) and **completed/past** (user-marked-done or past-deadline — sorted by `completedAt ?? targetDate` descending). Active rows render first; the completed bucket is shown under a collapsible "Completed · N" sub-header. A 60-second `Timer.publish` keeps a `now` state variable fresh so the partition re-runs as deadlines cross without navigating away. `scenePhase` observation also refreshes `now` on app resume and re-locks every unlocked section on background.
 
 Marking an item done is a tap on the leading circle (Reminders-style), which sets `isCompleted = true`, stamps `completedAt`, and cancels its pending notifications. Left-edge swipe works too as a shortcut. Reopening — tap the filled checkmark again or swipe — reverses the state and reschedules any offsets still in the future.
 
