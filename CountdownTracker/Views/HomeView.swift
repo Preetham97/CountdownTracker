@@ -11,6 +11,7 @@ struct HomeView: View {
     @State private var sectionForNewItem: CountdownSection?
     @State private var itemToEdit: CountdownItem?
     @State private var sectionToEdit: CountdownSection?
+    @State private var sectionToDelete: CountdownSection?
 
     var body: some View {
         NavigationStack {
@@ -44,11 +45,48 @@ struct HomeView: View {
             .sheet(item: $sectionToEdit) { section in
                 AddSectionView(section: section)
             }
+            .confirmationDialog(
+                deleteTitle(sectionToDelete),
+                isPresented: deleteDialogBinding,
+                titleVisibility: .visible,
+                presenting: sectionToDelete
+            ) { section in
+                Button("Delete Section", role: .destructive) {
+                    modelContext.delete(section)
+                    sectionToDelete = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    sectionToDelete = nil
+                }
+            } message: { section in
+                Text(deleteMessage(section))
+            }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .background || newPhase == .inactive {
                     auth.lockAll()
                 }
             }
+        }
+    }
+
+    private var deleteDialogBinding: Binding<Bool> {
+        Binding(
+            get: { sectionToDelete != nil },
+            set: { if !$0 { sectionToDelete = nil } }
+        )
+    }
+
+    private func deleteTitle(_ section: CountdownSection?) -> String {
+        guard let section else { return "" }
+        return "Delete \"\(section.name)\"?"
+    }
+
+    private func deleteMessage(_ section: CountdownSection) -> String {
+        let count = section.items.count
+        switch count {
+        case 0: return "This section has no countdowns."
+        case 1: return "This will also delete 1 countdown in this section."
+        default: return "This will also delete \(count) countdowns in this section."
         }
     }
 
@@ -132,7 +170,7 @@ struct HomeView: View {
                     Label("Edit", systemImage: "pencil")
                 }
                 Button(role: .destructive) {
-                    modelContext.delete(section)
+                    sectionToDelete = section
                 } label: {
                     Label("Delete", systemImage: "trash")
                 }
