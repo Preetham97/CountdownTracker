@@ -9,6 +9,7 @@ A simple, native iOS app for tracking time remaining until important dates — b
 - **Auto-ordering by urgency** — Within each section, active upcoming deadlines are sorted closest-first (most urgent at top). Completed and past-deadline items drop into a collapsible "Completed" sub-bucket below, newest-first. Re-evaluates every minute, so rows migrate between buckets as deadlines tick by.
 - **Mark as done** — Tap the circle at the start of any row (Reminders-style) to complete it before the deadline. Completed items strike through, grey out, move to the Completed bucket, and have their pending notifications cancelled. Tap the filled checkmark — or left-swipe the row — to reopen (restores notifications if the deadline is still ahead).
 - **Collapsible Completed bucket** — Inside a section's detail, completed and past-deadline items tuck under a *"Completed · N"* row you can expand or collapse. Default collapsed so active items stay at the top.
+- **Completed sections auto-bucket** — On the home screen, when every countdown in a section is marked done, the whole section drops into its own collapsible *"Completed · N"* bucket at the bottom so active sections stay front-and-center. Adding a new countdown (or reopening a completed one) lifts the section back into the active list automatically.
 - **Urgency color coding** — Row color shifts as the target approaches:
   - Green: more than 7 days away
   - Orange: less than 7 days

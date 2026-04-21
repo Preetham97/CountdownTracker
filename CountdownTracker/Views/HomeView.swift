@@ -11,8 +11,23 @@ struct HomeView: View {
     @State private var sectionToEdit: CountdownSection?
     @State private var sectionToDelete: CountdownSection?
     @State private var now: Date = .now
+    @AppStorage("completedSectionsExpanded") private var completedSectionsExpanded: Bool = false
 
     private let reorderTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+
+    /// A section is "completed" when it has items and every item is done.
+    /// Empty sections stay in the active bucket — there's nothing to clear.
+    private func isSectionCompleted(_ section: CountdownSection) -> Bool {
+        !section.items.isEmpty && section.items.allSatisfy { $0.isCompleted }
+    }
+
+    private var activeSections: [CountdownSection] {
+        sections.filter { !isSectionCompleted($0) }
+    }
+
+    private var completedSections: [CountdownSection] {
+        sections.filter { isSectionCompleted($0) }
+    }
 
     var body: some View {
         NavigationStack {
@@ -75,35 +90,77 @@ struct HomeView: View {
     }
 
     private var sectionsList: some View {
-        List {
-            ForEach(sections) { section in
-                NavigationLink(value: section) {
-                    SectionSummaryRow(section: section, now: now)
+        let active = activeSections
+        let completed = completedSections
+
+        return List {
+            if !active.isEmpty {
+                Section {
+                    ForEach(active) { section in
+                        sectionRow(for: section)
+                    }
                 }
-                .listRowBackground(
-                    sectionToDelete?.persistentModelID == section.persistentModelID
-                        ? Color.red.opacity(0.12)
-                        : Color(.secondarySystemGroupedBackground)
-                )
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    // No destructive role — avoids iOS's premature row-removal
-                    // animation before the confirmation dialog fires.
+            }
+
+            if !completed.isEmpty {
+                Section {
                     Button {
-                        sectionToDelete = section
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            completedSectionsExpanded.toggle()
+                        }
                     } label: {
-                        Label("Delete", systemImage: "trash")
+                        HStack(spacing: 8) {
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .rotationEffect(.degrees(completedSectionsExpanded ? 90 : 0))
+                            Text("Completed · \(completed.count)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                        .padding(.vertical, 2)
                     }
-                    .tint(.red)
-                    Button {
-                        sectionToEdit = section
-                    } label: {
-                        Label("Edit", systemImage: "pencil")
+                    .buttonStyle(.plain)
+
+                    if completedSectionsExpanded {
+                        ForEach(completed) { section in
+                            sectionRow(for: section)
+                        }
                     }
-                    .tint(.blue)
                 }
             }
         }
         .listStyle(.insetGrouped)
+    }
+
+    @ViewBuilder
+    private func sectionRow(for section: CountdownSection) -> some View {
+        NavigationLink(value: section) {
+            SectionSummaryRow(section: section, now: now)
+        }
+        .listRowBackground(
+            sectionToDelete?.persistentModelID == section.persistentModelID
+                ? Color.red.opacity(0.12)
+                : Color(.secondarySystemGroupedBackground)
+        )
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            // No destructive role — avoids iOS's premature row-removal
+            // animation before the confirmation dialog fires.
+            Button {
+                sectionToDelete = section
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            .tint(.red)
+            Button {
+                sectionToEdit = section
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            .tint(.blue)
+        }
     }
 
     private var emptyState: some View {
