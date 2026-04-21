@@ -64,7 +64,7 @@ struct CountdownRow: View {
         let color: Color
         if diff < 86400 { color = .red }
         else if diff < 7 * 86400 { color = .orange }
-        else { color = .blue }
+        else { color = .green }
 
         if days > 0 {
             return CountdownDisplay(primary: "\(days)d \(hours)h", label: "\(minutes)m left", color: color)
