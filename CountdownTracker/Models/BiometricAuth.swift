@@ -1,5 +1,6 @@
 import Foundation
 import LocalAuthentication
+import SwiftData
 import SwiftUI
 
 /// Wraps LAContext with a simple async API and tracks which sections the user
