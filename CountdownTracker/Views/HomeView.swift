@@ -79,16 +79,26 @@ struct HomeView: View {
         }
     }
 
-    /// Upcoming items closest-first, followed by past items most-recent-first.
-    /// Recomputed whenever `now` ticks forward (every 60s or on resume).
-    private func orderedItems(for section: CountdownSection) -> [CountdownItem] {
-        let upcoming = section.items
-            .filter { $0.targetDate > now }
+    /// Active upcoming items — not completed, deadline still in the future —
+    /// sorted closest-first. Recomputed when `now` ticks forward so items
+    /// migrate into the Completed bucket as their deadlines pass.
+    private func activeItems(for section: CountdownSection) -> [CountdownItem] {
+        section.items
+            .filter { !$0.isCompleted && $0.targetDate > now }
             .sorted { $0.targetDate < $1.targetDate }
-        let past = section.items
-            .filter { $0.targetDate <= now }
-            .sorted { $0.targetDate > $1.targetDate }
-        return upcoming + past
+    }
+
+    /// Items that are either user-completed or past their deadline.
+    /// Sorted newest-first by whichever event is more recent — this puts
+    /// "just-cleared" rows on top of older ones.
+    private func completedItems(for section: CountdownSection) -> [CountdownItem] {
+        section.items
+            .filter { $0.isCompleted || $0.targetDate <= now }
+            .sorted { lhs, rhs in
+                let l = lhs.completedAt ?? lhs.targetDate
+                let r = rhs.completedAt ?? rhs.targetDate
+                return l > r
+            }
     }
 
     private var deleteDialogBinding: Binding<Bool> {
@@ -145,26 +155,29 @@ struct HomeView: View {
         } else if section.isLocked && !auth.isUnlocked(section) {
             LockedSectionRow(section: section)
         } else {
-            let ordered = orderedItems(for: section)
-            if ordered.isEmpty {
+            let active = activeItems(for: section)
+            let completed = completedItems(for: section)
+
+            if active.isEmpty && completed.isEmpty {
                 Text("No countdowns yet")
                     .foregroundStyle(.tertiary)
                     .font(.subheadline)
                     .padding(.vertical, 4)
             }
-            ForEach(ordered) { item in
-                CountdownRow(item: item)
-                    .contentShape(Rectangle())
-                    .onTapGesture { itemToEdit = item }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            NotificationScheduler.cancel(for: item)
-                            modelContext.delete(item)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
+
+            ForEach(active) { item in
+                row(for: item)
             }
+
+            if !completed.isEmpty {
+                completedHeader(section: section, count: completed.count)
+                if section.isCompletedExpanded {
+                    ForEach(completed) { item in
+                        row(for: item)
+                    }
+                }
+            }
+
             Button {
                 sectionForNewItem = section
             } label: {
@@ -172,6 +185,69 @@ struct HomeView: View {
                     .font(.subheadline)
                     .foregroundStyle(.blue)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func row(for item: CountdownItem) -> some View {
+        CountdownRow(item: item)
+            .contentShape(Rectangle())
+            .onTapGesture { itemToEdit = item }
+            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                Button {
+                    toggleCompletion(item)
+                } label: {
+                    if item.isCompleted {
+                        Label("Reopen", systemImage: "arrow.uturn.backward")
+                    } else {
+                        Label("Done", systemImage: "checkmark")
+                    }
+                }
+                .tint(item.isCompleted ? .gray : .green)
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                Button(role: .destructive) {
+                    NotificationScheduler.cancel(for: item)
+                    modelContext.delete(item)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+    }
+
+    @ViewBuilder
+    private func completedHeader(section: CountdownSection, count: Int) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                section.isCompletedExpanded.toggle()
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .rotationEffect(.degrees(section.isCompletedExpanded ? 90 : 0))
+                Text("Completed · \(count)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .contentShape(Rectangle())
+            .padding(.vertical, 2)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func toggleCompletion(_ item: CountdownItem) {
+        if item.isCompleted {
+            item.isCompleted = false
+            item.completedAt = nil
+            // Resume notifications for any offsets still in the future.
+            NotificationScheduler.reschedule(for: item)
+        } else {
+            item.isCompleted = true
+            item.completedAt = .now
+            NotificationScheduler.cancel(for: item)
         }
     }
 
@@ -238,17 +314,16 @@ struct HomeView: View {
         if section.isLocked && !auth.isUnlocked(section) {
             return nil
         }
-        let count = section.items.count
-        if count == 0 {
+        let active = section.items.filter { !$0.isCompleted && $0.targetDate > now }
+        let totalCount = section.items.count
+        if totalCount == 0 {
             return "Empty"
         }
-        let countStr = count == 1 ? "1 countdown" : "\(count) countdowns"
-        let upcoming = section.items
-            .filter { $0.targetDate > now }
-            .sorted { $0.targetDate < $1.targetDate }
-        guard let next = upcoming.first else {
-            return "\(countStr) · all passed"
+        if active.isEmpty {
+            return "All cleared"
         }
+        let countStr = active.count == 1 ? "1 active" : "\(active.count) active"
+        let next = active.sorted { $0.targetDate < $1.targetDate }.first!
         return "\(countStr) · next \(relativeDescription(for: next.targetDate))"
     }
 

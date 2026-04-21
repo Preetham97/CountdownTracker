@@ -7,6 +7,11 @@ class CountdownItem {
     var targetDate: Date
     var section: CountdownSection?
 
+    // User-completed flag. When true, the item is struck through, greyed
+    // out, moved to the Completed bucket, and its notifications are cancelled.
+    var isCompleted: Bool = false
+    var completedAt: Date?
+
     // Notification opt-ins. Default: 1-day-before only.
     var notify15d: Bool = false
     var notify7d: Bool = false

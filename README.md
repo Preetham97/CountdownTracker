@@ -6,7 +6,8 @@ A simple, native iOS app for tracking time remaining until important dates — b
 
 - **Sections** — Group related countdowns (e.g., "Work", "Travel", "Credit Cards"). Rename, reconfigure, or delete at any time.
 - **Live countdowns** — Real-time display of days, hours, minutes, and seconds remaining, updated every second.
-- **Auto-ordering by urgency** — Within each section, upcoming deadlines are sorted closest-first (most urgent at top), with past deadlines below in most-recent-first order. Re-evaluates every minute, so a row slides down into the "past" group as its deadline ticks by.
+- **Auto-ordering by urgency** — Within each section, active upcoming deadlines are sorted closest-first (most urgent at top). Completed and past-deadline items drop into a collapsible "Completed" sub-bucket below, newest-first. Re-evaluates every minute, so rows migrate between buckets as deadlines tick by.
+- **Mark as done** — Swipe a row from the left to strike it through before the deadline hits. Done items grey out, move to the Completed bucket, and have their pending notifications cancelled automatically. Swipe again to reopen (restores notifications if the deadline is still ahead).
 - **Collapsible sections** — Tap a section header (or its chevron) to collapse or expand it. Collapsed headers show the item count and a preview of the next upcoming deadline (e.g. *"5 countdowns · next in 2d"*). Expansion state persists across launches per section. Locked sections hide the preview until unlocked.
 - **Urgency color coding** — Row color shifts as the target approaches:
   - Green: more than 7 days away
@@ -71,12 +72,15 @@ CountdownTracker/
 - `sortOrder: Int`
 - `isLocked: Bool` — when `true`, contents are hidden until unlocked via biometrics
 - `isExpanded: Bool` — per-section collapse state, persisted across launches
+- `isCompletedExpanded: Bool` — whether the inline Completed bucket is open (default `false`)
 - `items: [CountdownItem]` — cascade delete
 
 **CountdownItem** (leaf)
 - `title: String`
 - `targetDate: Date`
 - `section: CountdownSection?` — inverse relationship
+- `isCompleted: Bool` — user marked as done
+- `completedAt: Date?` — timestamp used to sort the Completed bucket newest-first
 - `notify15d`, `notify7d`, `notify1d: Bool` — per-countdown notification opt-ins (default: 1d only)
 
 Deleting a section cascades to its countdowns.
@@ -91,7 +95,9 @@ SwiftData's `ModelContainer` is configured in [CountdownTrackerApp.swift](Countd
 
 ### Ordering
 
-[HomeView.swift](CountdownTracker/Views/HomeView.swift) partitions each section's items into upcoming (target date in the future, sorted ascending) and past (target date in the past, sorted descending), concatenated. A 60-second `Timer.publish` keeps a `now` state variable fresh so the partition re-runs as deadlines cross without the user navigating away. `scenePhase` observation also refreshes `now` on app resume.
+[HomeView.swift](CountdownTracker/Views/HomeView.swift) partitions each section's items into **active** (not completed, deadline in the future — sorted ascending) and **completed/past** (user-marked-done or past-deadline — sorted by `completedAt ?? targetDate` descending). Active rows render first; the completed bucket is shown under a collapsible "Completed · N" sub-header inside the same section. A 60-second `Timer.publish` keeps a `now` state variable fresh so the partition re-runs as deadlines cross without the user navigating away. `scenePhase` observation also refreshes `now` on app resume.
+
+Marking an item done is a left-edge swipe on the row, which sets `isCompleted = true`, stamps `completedAt`, and cancels its pending notifications. Reopening reverses the state and reschedules any offsets that are still in the future.
 
 ### Biometric Locking
 

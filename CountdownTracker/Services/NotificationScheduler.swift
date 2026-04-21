@@ -69,6 +69,9 @@ enum NotificationScheduler {
     static func reschedule(for item: CountdownItem) {
         cancel(for: item)
 
+        // Completed items never get reminders, regardless of opt-ins.
+        guard !item.isCompleted else { return }
+
         let center = UNUserNotificationCenter.current()
         let enabledOffsets: [Offset] = {
             var out: [Offset] = []

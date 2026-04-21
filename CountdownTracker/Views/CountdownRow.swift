@@ -10,6 +10,8 @@ struct CountdownRow: View {
                     Text(item.title)
                         .font(.body)
                         .fontWeight(.medium)
+                        .strikethrough(item.isCompleted, color: .secondary)
+                        .foregroundStyle(item.isCompleted ? Color.secondary : .primary)
                     Text(item.targetDate.formatted(date: .abbreviated, time: .omitted))
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -20,6 +22,7 @@ struct CountdownRow: View {
                 countdownView(at: context.date)
             }
             .padding(.vertical, 4)
+            .opacity(item.isCompleted ? 0.6 : 1.0)
         }
     }
 
@@ -32,9 +35,10 @@ struct CountdownRow: View {
             Text(display.primary)
                 .font(.title3)
                 .fontWeight(.bold)
-                .foregroundStyle(display.color)
+                .foregroundStyle(item.isCompleted ? Color.secondary : display.color)
+                .strikethrough(item.isCompleted, color: .secondary)
                 .monospacedDigit()
-            Text(display.label)
+            Text(item.isCompleted ? "done" : display.label)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
