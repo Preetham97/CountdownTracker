@@ -112,6 +112,8 @@ The usage string is declared via the `INFOPLIST_KEY_NSFaceIDUsageDescription` bu
 
 Authorization is requested lazily — on the first save where any notification opt-in is enabled — rather than at launch, to avoid a cold-start prompt before the user has seen the app.
 
+A `UNUserNotificationCenterDelegate` set in `CountdownTrackerApp` returns `[.banner, .list, .sound]` from `willPresent`, so notifications still surface as banners when the app is foregrounded. Without it, iOS silently routes foreground notifications into Notification Center — which would defeat the catch-up notification for a countdown the user just saved minutes away.
+
 Privacy for locked sections: the notification title is the section name (non-sensitive) and the body is scrubbed to `"A countdown is 7 days away"` rather than revealing the item title. Toggling a section's lock flag reschedules all its items so the content matches the new privacy setting.
 
 ## Design Choices
