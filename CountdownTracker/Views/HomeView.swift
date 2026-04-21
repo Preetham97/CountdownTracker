@@ -7,6 +7,7 @@ struct HomeView: View {
 
     @State private var showAddSection = false
     @State private var sectionForNewItem: CountdownSection?
+    @State private var itemToEdit: CountdownItem?
 
     var body: some View {
         NavigationStack {
@@ -33,6 +34,9 @@ struct HomeView: View {
             }
             .sheet(item: $sectionForNewItem) { section in
                 AddCountdownView(section: section)
+            }
+            .sheet(item: $itemToEdit) { item in
+                AddCountdownView(item: item)
             }
         }
     }
@@ -63,6 +67,10 @@ struct HomeView: View {
                     }
                     ForEach(sorted) { item in
                         CountdownRow(item: item)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                itemToEdit = item
+                            }
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button(role: .destructive) {
                                     modelContext.delete(item)
