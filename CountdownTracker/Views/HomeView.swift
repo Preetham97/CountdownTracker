@@ -139,7 +139,9 @@ struct HomeView: View {
 
     @ViewBuilder
     private func sectionBody(_ section: CountdownSection) -> some View {
-        if section.isLocked && !auth.isUnlocked(section) {
+        if !section.isExpanded {
+            EmptyView()
+        } else if section.isLocked && !auth.isUnlocked(section) {
             LockedSectionRow(section: section)
         } else {
             let ordered = orderedItems(for: section)
@@ -173,17 +175,40 @@ struct HomeView: View {
 
     @ViewBuilder
     private func sectionHeader(_ section: CountdownSection) -> some View {
-        HStack {
-            if section.isLocked {
-                Image(systemName: auth.isUnlocked(section) ? "lock.open.fill" : "lock.fill")
-                    .font(.caption)
-                    .foregroundStyle(auth.isUnlocked(section) ? .green : .secondary)
+        HStack(spacing: 8) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    section.isExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(section.isExpanded ? 90 : 0))
+                    if section.isLocked {
+                        Image(systemName: auth.isUnlocked(section) ? "lock.open.fill" : "lock.fill")
+                            .font(.caption)
+                            .foregroundStyle(auth.isUnlocked(section) ? .green : .secondary)
+                    }
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(section.name)
+                            .font(.headline)
+                            .textCase(nil)
+                            .foregroundStyle(.primary)
+                        if !section.isExpanded, let summary = collapsedSummary(for: section) {
+                            Text(summary)
+                                .font(.caption)
+                                .textCase(nil)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                }
+                .contentShape(Rectangle())
             }
-            Text(section.name)
-                .font(.headline)
-                .textCase(nil)
-                .foregroundStyle(.primary)
-            Spacer()
+            .buttonStyle(.plain)
+
             Menu {
                 Button {
                     sectionToEdit = section
@@ -203,6 +228,36 @@ struct HomeView: View {
             .buttonStyle(.plain)
         }
         .padding(.vertical, 2)
+    }
+
+    /// Summary line shown under the section name when collapsed. Hidden for
+    /// locked sections that haven't been unlocked (don't leak count/dates).
+    private func collapsedSummary(for section: CountdownSection) -> String? {
+        if section.isLocked && !auth.isUnlocked(section) {
+            return nil
+        }
+        let count = section.items.count
+        if count == 0 {
+            return "Empty"
+        }
+        let countStr = count == 1 ? "1 countdown" : "\(count) countdowns"
+        let upcoming = section.items
+            .filter { $0.targetDate > now }
+            .sorted { $0.targetDate < $1.targetDate }
+        guard let next = upcoming.first else {
+            return "\(countStr) · all passed"
+        }
+        return "\(countStr) · next \(relativeDescription(for: next.targetDate))"
+    }
+
+    private func relativeDescription(for date: Date) -> String {
+        let diff = date.timeIntervalSince(now)
+        let days = Int(diff / 86400)
+        if days >= 1 { return "in \(days)d" }
+        let hours = Int(diff / 3600)
+        if hours >= 1 { return "in \(hours)h" }
+        let minutes = max(Int(diff / 60), 1)
+        return "in \(minutes)m"
     }
 }
 

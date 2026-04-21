@@ -7,6 +7,7 @@ A simple, native iOS app for tracking time remaining until important dates — b
 - **Sections** — Group related countdowns (e.g., "Work", "Travel", "Credit Cards"). Rename, reconfigure, or delete at any time.
 - **Live countdowns** — Real-time display of days, hours, minutes, and seconds remaining, updated every second.
 - **Auto-ordering by urgency** — Within each section, upcoming deadlines are sorted closest-first (most urgent at top), with past deadlines below in most-recent-first order. Re-evaluates every minute, so a row slides down into the "past" group as its deadline ticks by.
+- **Collapsible sections** — Tap a section header (or its chevron) to collapse or expand it. Collapsed headers show the item count and a preview of the next upcoming deadline (e.g. *"5 countdowns · next in 2d"*). Expansion state persists across launches per section. Locked sections hide the preview until unlocked.
 - **Urgency color coding** — Row color shifts as the target approaches:
   - Green: more than 7 days away
   - Orange: less than 7 days
@@ -66,6 +67,7 @@ CountdownTracker/
 - `name: String`
 - `sortOrder: Int`
 - `isLocked: Bool` — when `true`, contents are hidden until unlocked via biometrics
+- `isExpanded: Bool` — per-section collapse state, persisted across launches
 - `items: [CountdownItem]` — cascade delete
 
 **CountdownItem** (leaf)
