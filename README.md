@@ -6,6 +6,7 @@ A simple, native iOS app for tracking time remaining until important dates — b
 
 - **Sections** — Group related countdowns (e.g., "Work", "Travel", "Credit Cards"). Rename, reconfigure, or delete at any time.
 - **Live countdowns** — Real-time display of days, hours, minutes, and seconds remaining, updated every second.
+- **Auto-ordering by urgency** — Within each section, upcoming deadlines are sorted closest-first (most urgent at top), with past deadlines below in most-recent-first order. Re-evaluates every minute, so a row slides down into the "past" group as its deadline ticks by.
 - **Urgency color coding** — Row color shifts as the target approaches:
   - Green: more than 7 days away
   - Orange: less than 7 days
@@ -81,6 +82,10 @@ SwiftData's `ModelContainer` is configured in [CountdownTrackerApp.swift](Countd
 ### Live Timer
 
 [CountdownRow.swift](CountdownTracker/Views/CountdownRow.swift) uses a `TimelineView(.periodic)` to recompute time remaining every second and update its color based on how far the target date is.
+
+### Ordering
+
+[HomeView.swift](CountdownTracker/Views/HomeView.swift) partitions each section's items into upcoming (target date in the future, sorted ascending) and past (target date in the past, sorted descending), concatenated. A 60-second `Timer.publish` keeps a `now` state variable fresh so the partition re-runs as deadlines cross without the user navigating away. `scenePhase` observation also refreshes `now` on app resume.
 
 ### Biometric Locking
 
