@@ -140,12 +140,13 @@ private struct SectionSummaryRow: View {
     let section: CountdownSection
     let now: Date
 
+    private var isUnlocked: Bool {
+        section.isLocked && auth.isUnlocked(section)
+    }
+
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: section.isLocked ? "lock.fill" : "folder.fill")
-                .font(.title3)
-                .foregroundStyle(section.isLocked ? Color.orange : .blue)
-                .frame(width: 28)
+            leadingIcon
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(section.name)
@@ -159,6 +160,34 @@ private struct SectionSummaryRow: View {
             Spacer()
         }
         .padding(.vertical, 2)
+    }
+
+    @ViewBuilder
+    private var leadingIcon: some View {
+        if section.isLocked {
+            // Tappable lock icon. Unlocked → tap to manually re-lock (Notes
+            // app pattern). Locked → tap passes through; the row's
+            // NavigationLink will trigger and the detail view handles auth.
+            Button {
+                if isUnlocked {
+                    auth.lock(section)
+                }
+            } label: {
+                Image(systemName: isUnlocked ? "lock.open.fill" : "lock.fill")
+                    .font(.title3)
+                    .foregroundStyle(isUnlocked ? Color.green : .orange)
+                    .frame(width: 28)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!isUnlocked)
+            .accessibilityLabel(isUnlocked ? "Lock \(section.name)" : "\(section.name) is locked")
+        } else {
+            Image(systemName: "folder.fill")
+                .font(.title3)
+                .foregroundStyle(.blue)
+                .frame(width: 28)
+        }
     }
 
     private var summary: String {

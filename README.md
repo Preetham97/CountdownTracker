@@ -14,7 +14,7 @@ A simple, native iOS app for tracking time remaining until important dates — b
   - Orange: less than 7 days
   - Red: less than 1 day
   - Grey: already passed
-- **Face ID / Touch ID locking (per-section)** — Opt-in when creating or editing a section. Locked sections hide their contents until you authenticate; removing a lock itself requires authentication.
+- **Face ID / Touch ID locking (per-section)** — Opt-in when creating or editing a section. Locked sections hide their contents until you authenticate; removing a lock itself requires authentication. After unlocking, the home-list lock icon turns green + open — tap it to re-lock on demand without backgrounding the app (Notes-app pattern). All unlocked sections re-lock automatically when the app goes to the background.
 - **Opt-in notifications** — Each countdown can schedule local reminders at 15 days, 1 week, and/or 1 day before its deadline. Defaults to 1-day-only so users aren't bombarded; turn the others on per-countdown if you want earlier heads-ups. Reminders fire at the exact time-of-day of the deadline. For items in Face ID–locked sections, the notification shows the section name but hides the countdown title.
 - **Edit anything** — Tap a countdown in the detail view to edit its title/date; use the detail view's menu (•••) to rename the section, toggle its lock, or delete it. Swipe actions on the home list give shortcuts for Edit/Delete Section.
 - **Safe section delete** — Deleting a section prompts for confirmation and tells you how many countdowns will be destroyed with it.

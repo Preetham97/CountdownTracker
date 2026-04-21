@@ -50,4 +50,10 @@ final class BiometricAuth {
     func lockAll() {
         unlockedSectionIDs.removeAll()
     }
+
+    /// Re-lock a single section (used by the manual lock button). No-op for
+    /// sections that aren't locked in the first place.
+    func lock(_ section: CountdownSection) {
+        unlockedSectionIDs.remove(section.persistentModelID)
+    }
 }
