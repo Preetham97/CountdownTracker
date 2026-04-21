@@ -196,17 +196,20 @@ private struct SectionSummaryRow: View {
     }
 
     private var summary: String {
+        let lockedAndHidden = section.isLocked && !auth.isUnlocked(section)
+        let prefix = lockedAndHidden ? "Locked · " : ""
+
         let active = section.items
             .filter { !$0.isCompleted && $0.targetDate > now }
             .sorted { $0.targetDate < $1.targetDate }
         if section.items.isEmpty {
-            return "Empty"
+            return "\(prefix)Empty"
         }
         guard let next = active.first else {
-            return "All cleared"
+            return "\(prefix)All cleared"
         }
         let countStr = active.count == 1 ? "1 active" : "\(active.count) active"
-        return "\(countStr) · next \(relativeDescription(from: now, to: next.targetDate))"
+        return "\(prefix)\(countStr) · next \(relativeDescription(from: now, to: next.targetDate))"
     }
 }
 
