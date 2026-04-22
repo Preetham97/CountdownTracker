@@ -264,16 +264,32 @@ private struct SectionSummaryRow: View {
         let lockedAndHidden = section.isLocked && !auth.isUnlocked(section)
         let prefix = lockedAndHidden ? "Locked · " : ""
 
-        let active = section.items
-            .filter { !$0.isCompleted && $0.targetDate > now }
-            .sorted { $0.targetDate < $1.targetDate }
         if section.items.isEmpty {
             return "\(prefix)Empty"
         }
+
+        // Active = not marked done (past-deadline items still count — user
+        // needs to acknowledge them).
+        let active = section.items
+            .filter { !$0.isCompleted }
+            .sorted { $0.targetDate < $1.targetDate }
+
         guard let next = active.first else {
             return "\(prefix)All cleared"
         }
+
         let countStr = active.count == 1 ? "1 active" : "\(active.count) active"
+
+        // If the earliest active item has already passed, flag it instead of
+        // computing a misleading "next in -3d" style phrase. We surface the
+        // overdue state even if there are also future items, because overdue
+        // is the thing that needs attention first.
+        if next.targetDate <= now {
+            let overdueCount = active.prefix(while: { $0.targetDate <= now }).count
+            let overdueStr = overdueCount == 1 ? "1 overdue" : "\(overdueCount) overdue"
+            return "\(prefix)\(countStr) · \(overdueStr)"
+        }
+
         return "\(prefix)\(countStr) · next \(relativeDescription(from: now, to: next.targetDate))"
     }
 }

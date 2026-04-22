@@ -219,15 +219,21 @@ struct SectionDetailView: View {
 
     // MARK: - Derived data
 
+    /// Active = every item the user hasn't marked done, regardless of whether
+    /// its deadline has passed. Past-deadline items stay here (and bubble to
+    /// the top via ascending-date sort) so the user is prompted to either
+    /// check them off or push the deadline.
     private var activeItems: [CountdownItem] {
         section.items
-            .filter { !$0.isCompleted && $0.targetDate > now }
+            .filter { !$0.isCompleted }
             .sorted { $0.targetDate < $1.targetDate }
     }
 
+    /// Completed = only items the user has explicitly marked done. Past-deadline
+    /// but still-unchecked items live in `activeItems`.
     private var completedItems: [CountdownItem] {
         section.items
-            .filter { $0.isCompleted || $0.targetDate <= now }
+            .filter { $0.isCompleted }
             .sorted { lhs, rhs in
                 let l = lhs.completedAt ?? lhs.targetDate
                 let r = rhs.completedAt ?? rhs.targetDate

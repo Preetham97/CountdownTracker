@@ -52,12 +52,15 @@ struct CountdownRow: View {
 
     private func countdownDisplay(diff: TimeInterval) -> CountdownDisplay {
         if diff <= 0 {
+            // Past-deadline, still-unchecked items stay in the active list and
+            // render in red — they need the user to either check them off or
+            // extend the deadline. Grey would read as "done" and hide the cue.
             let absDiff = abs(diff)
             let days = Int(absDiff / 86400)
             if days == 0 {
-                return CountdownDisplay(primary: "Today", label: "passed", color: .secondary)
+                return CountdownDisplay(primary: "Today", label: "passed", color: .red)
             }
-            return CountdownDisplay(primary: "\(days)d", label: "ago", color: .secondary)
+            return CountdownDisplay(primary: "\(days)d", label: "ago", color: .red)
         }
 
         let days = Int(diff / 86400)
