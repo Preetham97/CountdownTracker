@@ -9,6 +9,17 @@ struct CountdownTrackerApp: App {
     // holds it weakly.
     private let notificationDelegate = ForegroundNotificationDelegate()
 
+    /// Owned explicitly so we can hand a `ModelContext` to the launch-time
+    /// notification reconciler. The same container is also handed to the
+    /// SwiftUI environment via `.modelContainer(_:)` below.
+    private let modelContainer: ModelContainer = {
+        do {
+            return try ModelContainer(for: CountdownSection.self, CountdownItem.self)
+        } catch {
+            fatalError("Failed to create ModelContainer: \(error)")
+        }
+    }()
+
     init() {
         UNUserNotificationCenter.current().delegate = notificationDelegate
     }
@@ -17,8 +28,17 @@ struct CountdownTrackerApp: App {
         WindowGroup {
             ContentView()
                 .environment(auth)
+                .task {
+                    // Heal any zombie notifications left over from the previous
+                    // (buggy) hash-based identifier scheme, and keep iOS's
+                    // pending queue in sync with the database.
+                    let context = ModelContext(modelContainer)
+                    await MainActor.run {
+                        NotificationScheduler.reconcileAll(context: context)
+                    }
+                }
         }
-        .modelContainer(for: [CountdownSection.self, CountdownItem.self])
+        .modelContainer(modelContainer)
     }
 }
 

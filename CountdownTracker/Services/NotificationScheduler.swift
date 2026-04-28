@@ -222,10 +222,29 @@ enum NotificationScheduler {
 
     // MARK: - Identity
 
-    /// SwiftData's `PersistentIdentifier` stringifies reasonably, but we
-    /// normalise it by hashing to keep request IDs short and filesystem-safe.
+    /// Stable per-item identifier prefix. Backed by `CountdownItem.notificationID`
+    /// (a UUID generated once at insert time) so it survives process restarts.
+    /// Previously this used `String(describing: persistentModelID).hashValue`,
+    /// but Swift randomizes string hashing per launch, so a notification scheduled
+    /// in one process couldn't be cancelled in the next — leaving zombie
+    /// reminders for deleted items.
     private static func stableID(for item: CountdownItem) -> String {
-        let raw = String(describing: item.persistentModelID)
-        return "cd-\(raw.hashValue)"
+        return "cd-\(item.notificationID)"
+    }
+
+    // MARK: - Launch reconciliation
+
+    /// Wipe every pending notification and reschedule from the live model. Called
+    /// once at app launch to: (a) heal any zombie notifications scheduled with
+    /// the old (unstable) hash-based IDs, and (b) keep iOS's pending queue in
+    /// sync with the database in case anything drifted.
+    @MainActor
+    static func reconcileAll(context: ModelContext) {
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        let descriptor = FetchDescriptor<CountdownItem>()
+        let items = (try? context.fetch(descriptor)) ?? []
+        for item in items {
+            reschedule(for: item)
+        }
     }
 }

@@ -17,6 +17,13 @@ class CountdownItem {
     var notify7d: Bool = false
     var notify1d: Bool = true
 
+    /// Stable identifier used as the prefix for notification request IDs.
+    /// We can't use `persistentModelID.hashValue` because Swift's String/hash
+    /// is randomized per process launch — that meant a notification scheduled
+    /// in one launch could not be cancelled in the next, so deleted items
+    /// kept firing reminders. UUID is generated once and persisted.
+    var notificationID: String = UUID().uuidString
+
     init(
         title: String,
         targetDate: Date,
