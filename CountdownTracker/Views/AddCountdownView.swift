@@ -13,6 +13,7 @@ struct AddCountdownView: View {
     @State private var notify15d: Bool
     @State private var notify7d: Bool
     @State private var notify1d: Bool
+    @State private var notes: String
 
     // Recurrence (create-mode only). Generates N independent countdown items
     // — one per occurrence — so each can be checked off / deleted on its own.
@@ -77,6 +78,7 @@ struct AddCountdownView: View {
         _notify15d = State(initialValue: false)
         _notify7d = State(initialValue: false)
         _notify1d = State(initialValue: true)
+        _notes = State(initialValue: "")
         // Default end date = 6 months out, a sensible mid-point for most
         // recurring bills/check-ins.
         _recurrenceEnd = State(
@@ -93,6 +95,7 @@ struct AddCountdownView: View {
         _notify15d = State(initialValue: item.notify15d)
         _notify7d = State(initialValue: item.notify7d)
         _notify1d = State(initialValue: item.notify1d)
+        _notes = State(initialValue: item.notes)
         _recurrenceEnd = State(initialValue: item.targetDate)
     }
 
@@ -185,6 +188,20 @@ struct AddCountdownView: View {
                          ? "Each occurrence gets its own notifications, fired at the same time of day as the deadline."
                          : "Notifications fire at the same time of day as the deadline.")
                 }
+
+                Section {
+                    // axis: .vertical lets the field grow as the user types,
+                    // up to ~6 lines. Long-form notes (full account info etc.)
+                    // are still editable, just with internal scrolling.
+                    TextField(
+                        "Account #, gate code, link, anything…",
+                        text: $notes,
+                        axis: .vertical
+                    )
+                    .lineLimit(2...6)
+                } header: {
+                    Label("Notes", systemImage: "note.text")
+                }
             }
             .navigationTitle(isEditing ? "Edit Countdown" : "New Countdown")
             .navigationBarTitleDisplayMode(.inline)
@@ -222,6 +239,7 @@ struct AddCountdownView: View {
             existing.notify15d = notify15d
             existing.notify7d = notify7d
             existing.notify1d = notify1d
+            existing.notes = notes
             try? modelContext.save()
 
             if notify15d || notify7d || notify1d {
@@ -239,6 +257,7 @@ struct AddCountdownView: View {
                     notify7d: notify7d,
                     notify1d: notify1d
                 )
+                new.notes = notes
                 new.section = section
                 section.items.append(new)
                 modelContext.insert(new)
@@ -256,6 +275,7 @@ struct AddCountdownView: View {
             }
         }
 
+        Haptics.success()
         dismiss()
     }
 }

@@ -267,6 +267,7 @@ struct SectionDetailView: View {
             item.completedAt = .now
             NotificationScheduler.cancel(for: item)
         }
+        Haptics.light()
     }
 }
 

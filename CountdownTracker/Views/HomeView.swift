@@ -11,6 +11,8 @@ struct HomeView: View {
     @State private var sectionToEdit: CountdownSection?
     @State private var sectionToDelete: CountdownSection?
     @State private var now: Date = .now
+    @State private var searchText: String = ""
+    @State private var searchEditTarget: CountdownItem?
     @AppStorage("completedSectionsExpanded") private var completedSectionsExpanded: Bool = false
 
     private let reorderTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
@@ -54,16 +56,40 @@ struct HomeView: View {
             .min()
     }
 
+    private var trimmedSearch: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Flat list of items matching the search across every section, with
+    /// title + notes searchable. Locked sections are excluded from results
+    /// unless they've been unlocked in the current session — otherwise the
+    /// search would expose protected titles.
+    private var searchResults: [CountdownItem] {
+        let q = trimmedSearch.lowercased()
+        guard !q.isEmpty else { return [] }
+        return sections
+            .filter { !$0.isLocked || auth.isUnlocked($0) }
+            .flatMap { $0.items }
+            .filter { item in
+                item.title.lowercased().contains(q)
+                    || item.notes.lowercased().contains(q)
+            }
+            .sorted { $0.targetDate < $1.targetDate }
+    }
+
     var body: some View {
         NavigationStack {
             Group {
                 if sections.isEmpty {
                     emptyState
+                } else if !trimmedSearch.isEmpty {
+                    searchResultsList
                 } else {
                     sectionsList
                 }
             }
             .navigationTitle("Countdowns")
+            .searchable(text: $searchText, prompt: "Search countdowns")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -79,6 +105,9 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showAddSection) {
                 AddSectionView()
+            }
+            .sheet(item: $searchEditTarget) { item in
+                AddCountdownView(item: item)
             }
             .sheet(item: $sectionToEdit) { section in
                 AddSectionView(section: section)
@@ -188,6 +217,26 @@ struct HomeView: View {
         }
     }
 
+    @ViewBuilder
+    private var searchResultsList: some View {
+        let results = searchResults
+        if results.isEmpty {
+            ContentUnavailableView.search(text: trimmedSearch)
+        } else {
+            List {
+                ForEach(results) { item in
+                    Button {
+                        searchEditTarget = item
+                    } label: {
+                        SearchResultRow(item: item)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .listStyle(.insetGrouped)
+        }
+    }
+
     private var emptyState: some View {
         ContentUnavailableView {
             Label("No Countdowns", systemImage: "calendar.badge.clock")
@@ -259,6 +308,7 @@ private struct SectionSummaryRow: View {
                 // Tappable: re-lock on demand (Notes-app pattern).
                 Button {
                     auth.lock(section)
+                    Haptics.light()
                 } label: {
                     Image(systemName: "lock.open.fill")
                         .font(.title3)
@@ -316,6 +366,48 @@ private struct SectionSummaryRow: View {
         }
 
         return "\(prefix)\(countStr) · next \(relativeDescription(from: now, to: next.targetDate))"
+    }
+}
+
+// MARK: - Search result row
+
+private struct SearchResultRow: View {
+    let item: CountdownItem
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "calendar")
+                .font(.title3)
+                .foregroundStyle(item.isCompleted ? Color.green.opacity(0.7) : .secondary)
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(item.title)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .strikethrough(item.isCompleted, color: .secondary)
+                        .foregroundStyle(item.isCompleted ? Color.secondary : .primary)
+                    if !item.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Image(systemName: "note.text")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                HStack(spacing: 4) {
+                    if let sectionName = item.section?.name {
+                        Text(sectionName)
+                        Text("·")
+                    }
+                    Text(item.targetDate.formatted(date: .abbreviated, time: .shortened))
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 2)
+        .contentShape(Rectangle())
     }
 }
 

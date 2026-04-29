@@ -7,11 +7,21 @@ struct CountdownRow: View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(item.title)
-                        .font(.body)
-                        .fontWeight(.medium)
-                        .strikethrough(item.isCompleted, color: .secondary)
-                        .foregroundStyle(item.isCompleted ? Color.secondary : .primary)
+                    HStack(spacing: 6) {
+                        Text(item.title)
+                            .font(.body)
+                            .fontWeight(.medium)
+                            .strikethrough(item.isCompleted, color: .secondary)
+                            .foregroundStyle(item.isCompleted ? Color.secondary : .primary)
+                        if !item.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            // Visual hint that this row has notes — tap to
+                            // open the edit sheet to read them.
+                            Image(systemName: "note.text")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .accessibilityLabel("Has notes")
+                        }
+                    }
                     Text(item.targetDate.formatted(date: .abbreviated, time: .omitted))
                         .font(.caption)
                         .foregroundStyle(.secondary)

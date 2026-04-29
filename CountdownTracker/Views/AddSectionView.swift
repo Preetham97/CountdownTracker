@@ -104,6 +104,7 @@ struct AddSectionView: View {
             )
             modelContext.insert(section)
         }
+        Haptics.success()
         dismiss()
     }
 }
