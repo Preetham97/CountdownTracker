@@ -22,11 +22,36 @@ struct HomeView: View {
     }
 
     private var activeSections: [CountdownSection] {
-        sections.filter { !isSectionCompleted($0) }
+        sections
+            .filter { !isSectionCompleted($0) }
+            .sorted { lhs, rhs in
+                // Sort by earliest unchecked deadline ascending — overdue
+                // sections rise above future ones, soonest-future ones above
+                // far-future ones. Sections with no unchecked items (either
+                // empty or all-cleared) fall to the bottom; ties break by
+                // name so order is stable.
+                let l = earliestActiveDate(in: lhs)
+                let r = earliestActiveDate(in: rhs)
+                switch (l, r) {
+                case let (l?, r?):       return l < r
+                case (_?, nil):          return true
+                case (nil, _?):          return false
+                case (nil, nil):         return lhs.name.localizedCompare(rhs.name) == .orderedAscending
+                }
+            }
     }
 
     private var completedSections: [CountdownSection] {
         sections.filter { isSectionCompleted($0) }
+    }
+
+    /// Earliest target date across this section's still-unchecked items.
+    /// `nil` if the section has no unchecked items.
+    private func earliestActiveDate(in section: CountdownSection) -> Date? {
+        section.items
+            .filter { !$0.isCompleted }
+            .map { $0.targetDate }
+            .min()
     }
 
     var body: some View {
