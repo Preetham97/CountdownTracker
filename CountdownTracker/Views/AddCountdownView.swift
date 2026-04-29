@@ -25,35 +25,44 @@ struct AddCountdownView: View {
     private static let maxOccurrences = 100
 
     enum Recurrence: String, CaseIterable, Identifiable {
-        case none, daily, weekly, monthly, yearly
+        case none, daily, weekly, monthly, quarterly, yearly
         var id: String { rawValue }
         var label: String {
             switch self {
-            case .none:    return "Never"
-            case .daily:   return "Daily"
-            case .weekly:  return "Weekly"
-            case .monthly: return "Monthly"
-            case .yearly:  return "Yearly"
+            case .none:      return "Never"
+            case .daily:     return "Daily"
+            case .weekly:    return "Weekly"
+            case .monthly:   return "Monthly"
+            case .quarterly: return "Quarterly"
+            case .yearly:    return "Yearly"
             }
         }
         var calendarComponent: Calendar.Component? {
             switch self {
-            case .none:    return nil
-            case .daily:   return .day
-            case .weekly:  return .weekOfYear
-            case .monthly: return .month
-            case .yearly:  return .year
+            case .none:                                  return nil
+            case .daily:                                 return .day
+            case .weekly:                                return .weekOfYear
+            case .monthly, .quarterly:                   return .month
+            case .yearly:                                return .year
+            }
+        }
+        /// Step size in `calendarComponent` units. Quarterly is just monthly × 3.
+        var step: Int {
+            switch self {
+            case .quarterly: return 3
+            default:         return 1
             }
         }
         /// Singular noun for the cadence — used in inline copy like
         /// "one per month".
         var unitLabel: String {
             switch self {
-            case .none:    return ""
-            case .daily:   return "day"
-            case .weekly:  return "week"
-            case .monthly: return "month"
-            case .yearly:  return "year"
+            case .none:      return ""
+            case .daily:     return "day"
+            case .weekly:    return "week"
+            case .monthly:   return "month"
+            case .quarterly: return "quarter"
+            case .yearly:    return "year"
             }
         }
     }
@@ -97,7 +106,7 @@ struct AddCountdownView: View {
         var current = targetDate
         let calendar = Calendar.current
         while dates.count < Self.maxOccurrences {
-            guard let next = calendar.date(byAdding: component, value: 1, to: current) else { break }
+            guard let next = calendar.date(byAdding: component, value: recurrence.step, to: current) else { break }
             if next > recurrenceEnd { break }
             dates.append(next)
             current = next
