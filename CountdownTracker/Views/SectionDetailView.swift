@@ -17,6 +17,12 @@ struct SectionDetailView: View {
     @State private var confirmDelete = false
     @State private var itemToDelete: CountdownItem?
     @State private var now: Date = .now
+    @State private var bucketExpansion: [ActiveBucket: Bool] = [
+        .overdue: true,
+        .thisWeek: true,
+        .thisMonth: false,
+        .later: false,
+    ]
 
     private let reorderTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
@@ -127,10 +133,39 @@ struct SectionDetailView: View {
             }
         } else {
             List {
-                if !active.isEmpty {
-                    Section {
-                        ForEach(active) { item in
-                            row(for: item)
+                // Time-bucket the active items so a section with dozens of
+                // countdowns stays scannable. Overdue + This Week expand by
+                // default; This Month + Later collapse so the long tail
+                // doesn't push the urgent stuff off-screen.
+                ForEach(ActiveBucket.allCases, id: \.self) { bucket in
+                    let bucketItems = active.filter { activeBucket(for: $0) == bucket }
+                    if !bucketItems.isEmpty {
+                        Section {
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    bucketExpansion[bucket]?.toggle()
+                                }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(bucket == .overdue ? .red : .secondary)
+                                        .rotationEffect(.degrees(bucketExpansion[bucket] == true ? 90 : 0))
+                                    Text("\(bucket.title) · \(bucketItems.count)")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(bucket == .overdue ? .red : .secondary)
+                                    Spacer()
+                                }
+                                .contentShape(Rectangle())
+                                .padding(.vertical, 2)
+                            }
+                            .buttonStyle(.plain)
+
+                            if bucketExpansion[bucket] == true {
+                                ForEach(bucketItems) { item in
+                                    row(for: item)
+                                }
+                            }
                         }
                     }
                 }
@@ -223,6 +258,32 @@ struct SectionDetailView: View {
     /// its deadline has passed. Past-deadline items stay here (and bubble to
     /// the top via ascending-date sort) so the user is prompted to either
     /// check them off or push the deadline.
+    /// Time-to-deadline bucket used to group active items in the detail
+    /// view. Order of the cases matches their on-screen order.
+    enum ActiveBucket: String, CaseIterable, Hashable {
+        case overdue, thisWeek, thisMonth, later
+
+        var title: String {
+            switch self {
+            case .overdue:   return "Overdue"
+            case .thisWeek:  return "This Week"
+            case .thisMonth: return "This Month"
+            case .later:     return "Later"
+            }
+        }
+    }
+
+    /// Classify an item by how soon its deadline is. `now` is the live
+    /// `@State` updated every minute, so items migrate between buckets
+    /// without leaving the view.
+    private func activeBucket(for item: CountdownItem) -> ActiveBucket {
+        let diff = item.targetDate.timeIntervalSince(now)
+        if diff <= 0 { return .overdue }
+        if diff < 7 * 86400 { return .thisWeek }
+        if diff < 30 * 86400 { return .thisMonth }
+        return .later
+    }
+
     private var activeItems: [CountdownItem] {
         section.items
             .filter { !$0.isCompleted }
