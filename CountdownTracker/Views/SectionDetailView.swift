@@ -20,7 +20,7 @@ struct SectionDetailView: View {
     /// Stores explicit user overrides only — empty by default. The actual
     /// expand/collapse decision flows through `isBucketExpanded(_:nonEmpty:)`,
     /// which falls back to a data-aware default (topmost non-empty bucket
-    /// is always expanded, plus Overdue/This Week if they have items).
+    /// is always expanded, plus Overdue/Within-a-Week if they have items).
     /// This way a section with only "Later" items opens with Later expanded.
     @State private var bucketExpansion: [ActiveBucket: Bool] = [:]
 
@@ -134,9 +134,11 @@ struct SectionDetailView: View {
         } else {
             List {
                 // Time-bucket the active items so a section with dozens of
-                // countdowns stays scannable. Overdue + This Week expand by
-                // default; This Month + Later collapse so the long tail
-                // doesn't push the urgent stuff off-screen.
+                // countdowns stays scannable. Overdue + Within-a-Week expand
+                // by default; Within-a-Month + Later collapse so the long
+                // tail doesn't push the urgent stuff off-screen. Bucket
+                // labels intentionally describe rolling windows ("Within a
+                // Month" = next 30 days from now), not calendar periods.
                 let nonEmptyBuckets = ActiveBucket.allCases.filter { bucket in
                     active.contains { activeBucket(for: $0) == bucket }
                 }
@@ -270,8 +272,8 @@ struct SectionDetailView: View {
         var title: String {
             switch self {
             case .overdue:   return "Overdue"
-            case .thisWeek:  return "This Week"
-            case .thisMonth: return "This Month"
+            case .thisWeek:  return "Within a Week"
+            case .thisMonth: return "Within a Month"
             case .later:     return "Later"
             }
         }
@@ -288,9 +290,10 @@ struct SectionDetailView: View {
     ///   handles the "all my items are >30 days away" case — Later opens
     ///   expanded instead of leaving the user staring at a single
     ///   collapsed header.
-    /// - Beyond the topmost, Overdue and This Week also auto-expand if
+    /// - Beyond the topmost, Overdue and Within-a-Week also auto-expand if
     ///   they have items (the urgent stuff stays visible).
-    /// - This Month and Later stay collapsed when they aren't the topmost.
+    /// - Within-a-Month and Later stay collapsed when they aren't the
+    ///   topmost.
     private func isBucketExpanded(_ bucket: ActiveBucket, nonEmpty: [ActiveBucket]) -> Bool {
         if let override = bucketExpansion[bucket] { return override }
         if nonEmpty.first == bucket { return true }
