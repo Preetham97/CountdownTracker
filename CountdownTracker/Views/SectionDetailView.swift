@@ -17,12 +17,12 @@ struct SectionDetailView: View {
     @State private var confirmDelete = false
     @State private var itemToDelete: CountdownItem?
     @State private var now: Date = .now
-    @State private var bucketExpansion: [ActiveBucket: Bool] = [
-        .overdue: true,
-        .thisWeek: true,
-        .thisMonth: false,
-        .later: false,
-    ]
+    /// Stores explicit user overrides only — empty by default. The actual
+    /// expand/collapse decision flows through `isBucketExpanded(_:nonEmpty:)`,
+    /// which falls back to a data-aware default (topmost non-empty bucket
+    /// is always expanded, plus Overdue/This Week if they have items).
+    /// This way a section with only "Later" items opens with Later expanded.
+    @State private var bucketExpansion: [ActiveBucket: Bool] = [:]
 
     private let reorderTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
@@ -137,20 +137,24 @@ struct SectionDetailView: View {
                 // countdowns stays scannable. Overdue + This Week expand by
                 // default; This Month + Later collapse so the long tail
                 // doesn't push the urgent stuff off-screen.
+                let nonEmptyBuckets = ActiveBucket.allCases.filter { bucket in
+                    active.contains { activeBucket(for: $0) == bucket }
+                }
                 ForEach(ActiveBucket.allCases, id: \.self) { bucket in
                     let bucketItems = active.filter { activeBucket(for: $0) == bucket }
                     if !bucketItems.isEmpty {
+                        let expanded = isBucketExpanded(bucket, nonEmpty: nonEmptyBuckets)
                         Section {
                             Button {
                                 withAnimation(.easeInOut(duration: 0.2)) {
-                                    bucketExpansion[bucket]?.toggle()
+                                    bucketExpansion[bucket] = !expanded
                                 }
                             } label: {
                                 HStack(spacing: 8) {
                                     Image(systemName: "chevron.right")
                                         .font(.caption.weight(.semibold))
                                         .foregroundStyle(bucket == .overdue ? .red : .secondary)
-                                        .rotationEffect(.degrees(bucketExpansion[bucket] == true ? 90 : 0))
+                                        .rotationEffect(.degrees(expanded ? 90 : 0))
                                     Text("\(bucket.title) · \(bucketItems.count)")
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundStyle(bucket == .overdue ? .red : .secondary)
@@ -161,7 +165,7 @@ struct SectionDetailView: View {
                             }
                             .buttonStyle(.plain)
 
-                            if bucketExpansion[bucket] == true {
+                            if expanded {
                                 ForEach(bucketItems) { item in
                                     row(for: item)
                                 }
@@ -276,6 +280,23 @@ struct SectionDetailView: View {
     /// Classify an item by how soon its deadline is. `now` is the live
     /// `@State` updated every minute, so items migrate between buckets
     /// without leaving the view.
+    /// Whether a bucket header should render as expanded right now.
+    /// Honors any explicit user toggle in `bucketExpansion`; otherwise falls
+    /// back to a data-aware default so the section never opens looking
+    /// empty:
+    /// - The topmost non-empty bucket is always expanded by default. This
+    ///   handles the "all my items are >30 days away" case — Later opens
+    ///   expanded instead of leaving the user staring at a single
+    ///   collapsed header.
+    /// - Beyond the topmost, Overdue and This Week also auto-expand if
+    ///   they have items (the urgent stuff stays visible).
+    /// - This Month and Later stay collapsed when they aren't the topmost.
+    private func isBucketExpanded(_ bucket: ActiveBucket, nonEmpty: [ActiveBucket]) -> Bool {
+        if let override = bucketExpansion[bucket] { return override }
+        if nonEmpty.first == bucket { return true }
+        return bucket == .overdue || bucket == .thisWeek
+    }
+
     private func activeBucket(for item: CountdownItem) -> ActiveBucket {
         let diff = item.targetDate.timeIntervalSince(now)
         if diff <= 0 { return .overdue }
