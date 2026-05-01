@@ -155,11 +155,11 @@ struct SectionDetailView: View {
                                 HStack(spacing: 8) {
                                     Image(systemName: "chevron.right")
                                         .font(.caption.weight(.semibold))
-                                        .foregroundStyle(bucket == .overdue ? .red : .secondary)
+                                        .foregroundStyle(bucket.headerColor)
                                         .rotationEffect(.degrees(expanded ? 90 : 0))
                                     Text("\(bucket.title) · \(bucketItems.count)")
                                         .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(bucket == .overdue ? .red : .secondary)
+                                        .foregroundStyle(bucket.headerColor)
                                     Spacer()
                                 }
                                 .contentShape(Rectangle())
@@ -275,6 +275,20 @@ struct SectionDetailView: View {
             case .thisWeek:  return "Within a Week"
             case .thisMonth: return "Within a Month"
             case .later:     return "Later"
+            }
+        }
+
+        /// Header tint that mirrors the per-row countdown coloring scheme
+        /// (red < 1 day / orange < 7 days / green ≥ 7 days), with a
+        /// `secondary` fade-out for the long tail. Keeping the bucket
+        /// palette aligned with row colors means a glance at the section
+        /// detail tells you urgency in the same visual language.
+        var headerColor: Color {
+            switch self {
+            case .overdue:   return .red
+            case .thisWeek:  return .orange
+            case .thisMonth: return .green
+            case .later:     return .secondary
             }
         }
     }
