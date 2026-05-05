@@ -212,6 +212,15 @@ private struct CountdownProgressRing: View {
                     .rotationEffect(.degrees(-90))
                     .shadow(color: tint.opacity(0.7), radius: 2.5)
                     .animation(.easeInOut(duration: 0.4), value: progress)
+
+                // Faint "ghost" checkmark inside the ring — a discoverability
+                // cue that hints at tap-to-complete without competing with
+                // the urgency colors. On completion the ring transitions to
+                // the bright white check above; this is its low-opacity
+                // preview.
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.secondary.opacity(0.45))
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.7), value: isCompleted)
