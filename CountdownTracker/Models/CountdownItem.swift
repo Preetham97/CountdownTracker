@@ -10,6 +10,13 @@ class CountdownItem {
     var targetDate: Date = Date.distantPast
     var section: CountdownSection?
 
+    /// Wall-clock timestamp the item was created. Drives the circular
+    /// progress ring on each row (full at creation, empty at deadline).
+    /// Defaulted to `.distantPast` to satisfy CloudKit; legacy rows that
+    /// pre-date this field use a 30-day rolling-window fallback in the
+    /// ring view so they still animate sensibly.
+    var createdAt: Date = Date.distantPast
+
     // User-completed flag. When true, the item is struck through, greyed
     // out, moved to the Completed bucket, and its notifications are cancelled.
     var isCompleted: Bool = false
@@ -43,5 +50,6 @@ class CountdownItem {
         self.notify15d = notify15d
         self.notify7d = notify7d
         self.notify1d = notify1d
+        self.createdAt = .now
     }
 }

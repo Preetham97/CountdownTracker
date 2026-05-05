@@ -29,11 +29,41 @@ struct CountdownRow: View {
 
                 Spacer()
 
+                if !item.isCompleted {
+                    // Visual urgency cue mirroring the app icon — a glowing
+                    // red ring that depletes from full (at creation) to
+                    // empty (at the deadline).
+                    CountdownProgressRing(progress: ringProgress(at: context.date))
+                        .frame(width: 26, height: 26)
+                        .padding(.trailing, 2)
+                }
+
                 countdownView(at: context.date)
             }
             .padding(.vertical, 4)
             .opacity(item.isCompleted ? 0.6 : 1.0)
         }
+    }
+
+    /// Progress of the urgency ring, 0...1. 1 = freshly created, 0 = deadline
+    /// reached or passed. For items predating the `createdAt` field (default
+    /// `.distantPast`) we fall back to a 30-day rolling window so the ring
+    /// still depletes meaningfully instead of looking permanently empty.
+    private func ringProgress(at now: Date) -> Double {
+        let remaining = item.targetDate.timeIntervalSince(now)
+        guard remaining > 0 else { return 0 }
+
+        // Anything older than ~10 years is a sentinel `.distantPast` from
+        // a legacy row. Use a 30-day rolling window in that case.
+        let legacyCutoff = now.addingTimeInterval(-10 * 365 * 86400)
+        let total: TimeInterval
+        if item.createdAt < legacyCutoff {
+            total = 30 * 86400
+        } else {
+            total = item.targetDate.timeIntervalSince(item.createdAt)
+        }
+        guard total > 0 else { return 0 }
+        return max(0, min(1, remaining / total))
     }
 
     @ViewBuilder
@@ -91,6 +121,39 @@ struct CountdownRow: View {
             return CountdownDisplay(primary: "\(minutes)m \(seconds)s", label: "left", color: color)
         } else {
             return CountdownDisplay(primary: "\(seconds)s", label: "left", color: .red)
+        }
+    }
+}
+
+/// Miniature of the app icon: a circular ring with a gray track and a
+/// glowing red trim that depletes as a deadline approaches. Starts from
+/// the top and unwinds clockwise, like a clock running down.
+private struct CountdownProgressRing: View {
+    /// Fraction of the ring filled in red, clamped to 0...1.
+    /// 1 = full (just created), 0 = deadline reached / past.
+    let progress: Double
+
+    var body: some View {
+        ZStack {
+            // Gray track underneath — the "empty" portion of the ring.
+            Circle()
+                .stroke(
+                    Color.gray.opacity(0.25),
+                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                )
+
+            // Red glowing trim — the "remaining" portion. Rotated -90°
+            // so 0% trim starts at the top and grows clockwise, matching
+            // the visual language of a depleting timer.
+            Circle()
+                .trim(from: 0, to: max(0, min(1, progress)))
+                .stroke(
+                    Color.red,
+                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .shadow(color: Color.red.opacity(0.7), radius: 2.5)
+                .animation(.easeInOut(duration: 0.4), value: progress)
         }
     }
 }
