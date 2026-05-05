@@ -65,10 +65,10 @@ struct CountdownRow: View {
 
     /// Smallest fraction of the ring we'll ever render colored, so overdue
     /// items keep a hint of red instead of looking like an unchecked
-    /// checkbox. ~4% ≈ 14° of arc — barely more than a dot once the
+    /// checkbox. ~5% ≈ 18° of arc — barely more than a dot once the
     /// rounded line caps render, but enough to register as "still here,
     /// out of time" rather than disappearing entirely.
-    private static let minVisibleProgress: Double = 0.04
+    private static let minVisibleProgress: Double = 0.05
 
     /// Progress of the urgency ring, 0...1. 1 = freshly created, 0 = deadline
     /// reached or passed (clamped to a small sliver so overdue items stay
