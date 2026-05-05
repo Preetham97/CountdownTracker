@@ -16,6 +16,12 @@ struct SectionDetailView: View {
     @State private var showEditSection = false
     @State private var confirmDelete = false
     @State private var itemToDelete: CountdownItem?
+    /// Item the user has tapped the leading ring on but not yet confirmed.
+    /// Drives a confirmation dialog so a stray tap doesn't instantly mark
+    /// a countdown as done. Only applied for active → completed; reopening
+    /// (already-done → active) stays direct since it's the safe undo
+    /// direction.
+    @State private var itemToConfirmComplete: CountdownItem?
     @State private var now: Date = .now
     /// Stores explicit user overrides only — empty by default. The actual
     /// expand/collapse decision flows through `isBucketExpanded(_:nonEmpty:)`,
@@ -109,6 +115,22 @@ struct SectionDetailView: View {
             }
         } message: { _ in
             Text("This countdown will be permanently removed.")
+        }
+        .confirmationDialog(
+            itemToConfirmComplete.map { "Complete \"\($0.title)\"?" } ?? "",
+            isPresented: itemConfirmCompleteBinding,
+            titleVisibility: .visible,
+            presenting: itemToConfirmComplete
+        ) { item in
+            Button("Mark Complete") {
+                toggleCompletion(item)
+                itemToConfirmComplete = nil
+            }
+            Button("Cancel", role: .cancel) {
+                itemToConfirmComplete = nil
+            }
+        } message: { _ in
+            Text("You can reopen it later by tapping the ring again.")
         }
         .onReceive(reorderTimer) { tick in
             now = tick
@@ -242,7 +264,20 @@ struct SectionDetailView: View {
         // — see CountdownRow's `onToggleCompletion` callback. Tap on the
         // body of the row still opens the edit sheet; the ring's own
         // Button stops the tap from bubbling up to the row gesture.
-        CountdownRow(item: item, onToggleCompletion: { toggleCompletion(item) })
+        CountdownRow(
+            item: item,
+            onToggleCompletion: {
+                if item.isCompleted {
+                    // Reopening is the safe direction — go direct.
+                    toggleCompletion(item)
+                } else {
+                    // Completing prompts for confirmation so a stray tap
+                    // on the leading ring doesn't immediately strike out
+                    // the item.
+                    itemToConfirmComplete = item
+                }
+            }
+        )
             .contentShape(Rectangle())
             .onTapGesture { itemToEdit = item }
         .listRowBackground(
@@ -361,6 +396,13 @@ struct SectionDetailView: View {
         Binding(
             get: { itemToDelete != nil },
             set: { if !$0 { itemToDelete = nil } }
+        )
+    }
+
+    private var itemConfirmCompleteBinding: Binding<Bool> {
+        Binding(
+            get: { itemToConfirmComplete != nil },
+            set: { if !$0 { itemToConfirmComplete = nil } }
         )
     }
 
