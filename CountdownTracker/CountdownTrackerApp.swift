@@ -12,9 +12,22 @@ struct CountdownTrackerApp: App {
     /// Owned explicitly so we can hand a `ModelContext` to the launch-time
     /// notification reconciler. The same container is also handed to the
     /// SwiftUI environment via `.modelContainer(_:)` below.
+    ///
+    /// Backed by CloudKit's private database so a user's countdowns sync
+    /// across all their iCloud-signed-in devices automatically. The first
+    /// launch on a new device pulls down whatever is in the user's private
+    /// CloudKit zone; subsequent edits propagate via background pushes.
+    /// If the user is signed out of iCloud or has iCloud Drive disabled
+    /// for the app, SwiftData transparently falls back to a local-only
+    /// store — no error path required.
     private let modelContainer: ModelContainer = {
         do {
-            return try ModelContainer(for: CountdownSection.self, CountdownItem.self)
+            let schema = Schema([CountdownSection.self, CountdownItem.self])
+            let config = ModelConfiguration(
+                schema: schema,
+                cloudKitDatabase: .private("iCloud.Bhuma.CountdownTracker")
+            )
+            return try ModelContainer(for: schema, configurations: [config])
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }

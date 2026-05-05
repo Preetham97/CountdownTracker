@@ -93,7 +93,9 @@ Deleting a section cascades to its countdowns.
 
 ### Persistence
 
-SwiftData's `ModelContainer` is configured in [CountdownTrackerApp.swift](CountdownTracker/CountdownTrackerApp.swift) for both model types. Views use `@Query` to observe data and `modelContext` to insert/delete.
+SwiftData's `ModelContainer` is configured in [CountdownTrackerApp.swift](CountdownTracker/CountdownTrackerApp.swift) for both model types, backed by CloudKit's private database (`iCloud.Bhuma.CountdownTracker`). Countdowns sync automatically across the user's iCloud-signed-in devices — no login UI in the app, since iCloud is a system-level account. If iCloud is signed out or disabled for the app, SwiftData transparently falls back to a local-only store. Views use `@Query` to observe data and `modelContext` to insert/delete.
+
+Model properties all carry default values or are optional to satisfy CloudKit schema constraints, and there are no `@Attribute(.unique)` constraints. Pure UI state (Completed-bucket expand/collapse) is intentionally kept *out* of the synced model and stored in `UserDefaults` keyed by section `stableID`, so a collapse on iPhone doesn't propagate to iPad.
 
 ### Live Timer
 
@@ -143,6 +145,5 @@ Run tests with `⌘U` in Xcode.
 ## Roadmap Ideas
 
 - Home Screen and Lock Screen widgets
-- iCloud sync across devices
 - Customizable color themes per section
 - Reordering sections via drag-and-drop

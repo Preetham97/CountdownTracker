@@ -24,6 +24,13 @@ struct SectionDetailView: View {
     /// This way a section with only "Later" items opens with Later expanded.
     @State private var bucketExpansion: [ActiveBucket: Bool] = [:]
 
+    /// Device-local mirror of the Completed bucket's expand/collapse state.
+    /// Backed by UserDefaults keyed on the section's stableID so each
+    /// device retains its own preference (this lives outside the SwiftData
+    /// model specifically so it does NOT sync via CloudKit — collapsing
+    /// Completed on iPhone shouldn't collapse it on iPad five seconds later).
+    @State private var isCompletedExpanded: Bool = false
+
     private let reorderTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -111,6 +118,20 @@ struct SectionDetailView: View {
                 now = .now
             }
         }
+        .onAppear {
+            // Hydrate the device-local Completed-bucket expansion state.
+            // Default false (collapsed) keeps finished items out of the way.
+            isCompletedExpanded = UserDefaults.standard.bool(
+                forKey: completedExpandedDefaultsKey
+            )
+        }
+    }
+
+    /// UserDefaults key for this section's Completed-bucket expansion.
+    /// Per-section so collapsing in one section doesn't bleed into others;
+    /// device-local because UI preference shouldn't sync via CloudKit.
+    private var completedExpandedDefaultsKey: String {
+        "completedExpanded.\(section.stableID)"
     }
 
     // MARK: - Content
@@ -180,14 +201,18 @@ struct SectionDetailView: View {
                     Section {
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
-                                section.isCompletedExpanded.toggle()
+                                isCompletedExpanded.toggle()
                             }
+                            UserDefaults.standard.set(
+                                isCompletedExpanded,
+                                forKey: completedExpandedDefaultsKey
+                            )
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "chevron.right")
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(.secondary)
-                                    .rotationEffect(.degrees(section.isCompletedExpanded ? 90 : 0))
+                                    .rotationEffect(.degrees(isCompletedExpanded ? 90 : 0))
                                 Text("Completed · \(completed.count)")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
@@ -198,7 +223,7 @@ struct SectionDetailView: View {
                         }
                         .buttonStyle(.plain)
 
-                        if section.isCompletedExpanded {
+                        if isCompletedExpanded {
                             ForEach(completed) { item in
                                 row(for: item)
                             }

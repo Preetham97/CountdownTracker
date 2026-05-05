@@ -3,8 +3,11 @@ import SwiftData
 
 @Model
 class CountdownItem {
-    var title: String
-    var targetDate: Date
+    // CloudKit constraint: every property must have a default value or be
+    // optional. The "" / .distantPast sentinels are never user-visible —
+    // `init` always sets real values before the item is saved.
+    var title: String = ""
+    var targetDate: Date = Date.distantPast
     var section: CountdownSection?
 
     // User-completed flag. When true, the item is struck through, greyed

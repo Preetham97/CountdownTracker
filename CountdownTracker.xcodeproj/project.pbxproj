@@ -24,7 +24,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		CDCDCDCD000000000000AA03 /* CountdownTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CountdownTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CDCDCDCD000000000000AA03 /* CountdownTracker17.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CountdownTracker17.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDCDCDCD000000000000AA04 /* CountdownTrackerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CountdownTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDCDCDCD000000000000AA05 /* CountdownTrackerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CountdownTrackerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -85,7 +85,7 @@
 		CDCDCDCD000000000000AA02 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				CDCDCDCD000000000000AA03 /* CountdownTracker.app */,
+				CDCDCDCD000000000000AA03 /* CountdownTracker17.app */,
 				CDCDCDCD000000000000AA04 /* CountdownTrackerTests.xctest */,
 				CDCDCDCD000000000000AA05 /* CountdownTrackerUITests.xctest */,
 			);
@@ -114,7 +114,7 @@
 			packageProductDependencies = (
 			);
 			productName = CountdownTracker;
-			productReference = CDCDCDCD000000000000AA03 /* CountdownTracker.app */;
+			productReference = CDCDCDCD000000000000AA03 /* CountdownTracker17.app */;
 			productType = "com.apple.product-type.application";
 		};
 		CDCDCDCD000000000000CC02 /* CountdownTrackerTests */ = {
@@ -391,6 +391,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = CountdownTracker/CountdownTracker.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = D7CHA2BNWG;
@@ -415,7 +416,8 @@
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = Bhuma.CountdownTracker;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = CountdownTracker17;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -432,6 +434,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = CountdownTracker/CountdownTracker.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = D7CHA2BNWG;
@@ -456,7 +459,8 @@
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = Bhuma.CountdownTracker;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = CountdownTracker17;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
