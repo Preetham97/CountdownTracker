@@ -63,13 +63,21 @@ struct CountdownRow: View {
         }
     }
 
+    /// Smallest fraction of the ring we'll ever render colored, so overdue
+    /// items keep a visible red sliver instead of looking like an
+    /// unchecked checkbox. ~7% ≈ 25° of arc — large enough to read with
+    /// the rounded line caps, small enough to clearly say "you're out of
+    /// time" rather than "you have a tiny bit left".
+    private static let minVisibleProgress: Double = 0.07
+
     /// Progress of the urgency ring, 0...1. 1 = freshly created, 0 = deadline
-    /// reached or passed. For items predating the `createdAt` field (default
-    /// `.distantPast`) we fall back to a 30-day rolling window so the ring
-    /// still depletes meaningfully instead of looking permanently empty.
+    /// reached or passed (clamped to a small sliver so overdue items stay
+    /// visually distinct from a vanilla checkbox). For items predating the
+    /// `createdAt` field (default `.distantPast`) we fall back to a 30-day
+    /// rolling window so the ring still depletes meaningfully.
     private func ringProgress(at now: Date) -> Double {
         let remaining = item.targetDate.timeIntervalSince(now)
-        guard remaining > 0 else { return 0 }
+        guard remaining > 0 else { return Self.minVisibleProgress }
 
         // Anything older than ~10 years is a sentinel `.distantPast` from
         // a legacy row. Use a 30-day rolling window in that case.
@@ -80,8 +88,9 @@ struct CountdownRow: View {
         } else {
             total = item.targetDate.timeIntervalSince(item.createdAt)
         }
-        guard total > 0 else { return 0 }
-        return max(0, min(1, remaining / total))
+        guard total > 0 else { return Self.minVisibleProgress }
+        let raw = remaining / total
+        return min(1, max(Self.minVisibleProgress, raw))
     }
 
     /// Mirrors the day-count text color exactly: red overdue / red < 1d /
