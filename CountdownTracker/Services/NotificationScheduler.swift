@@ -207,7 +207,7 @@ enum NotificationScheduler {
     /// Cancel pending notifications for every item in a section. Used when a
     /// section is deleted.
     static func cancelAll(in section: CountdownSection) {
-        for item in section.items {
+        for item in section.items ?? [] {
             cancel(for: item)
         }
     }
@@ -215,7 +215,7 @@ enum NotificationScheduler {
     /// Re-evaluate every item in a section. Used when the section's lock
     /// flag toggles — the notification body text changes with privacy.
     static func rescheduleAll(in section: CountdownSection) {
-        for item in section.items {
+        for item in section.items ?? [] {
             reschedule(for: item)
         }
     }

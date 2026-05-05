@@ -29,9 +29,22 @@
 		CDCDCDCD000000000000AA05 /* CountdownTrackerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CountdownTrackerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E60DAC522FAA7714007C131F /* Exceptions for "CountdownTracker" folder in "CountdownTracker" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CDCDCDCD000000000000CC01 /* CountdownTracker */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CDCDCDCD000000000000AA06 /* CountdownTracker */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E60DAC522FAA7714007C131F /* Exceptions for "CountdownTracker" folder in "CountdownTracker" target */,
+			);
 			path = CountdownTracker;
 			sourceTree = "<group>";
 		};
@@ -398,6 +411,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CountdownTracker/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Countdowns;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Use Face ID to unlock protected sections.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -441,6 +455,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CountdownTracker/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Countdowns;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Use Face ID to unlock protected sections.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;

@@ -259,7 +259,9 @@ struct AddCountdownView: View {
                 )
                 new.notes = notes
                 new.section = section
-                section.items.append(new)
+                // Inverse relationship auto-populates section.items;
+                // no explicit append needed (and items is now optional
+                // for CloudKit, so explicit append is awkward anyway).
                 modelContext.insert(new)
                 inserted.append(new)
             }

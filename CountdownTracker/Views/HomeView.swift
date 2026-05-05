@@ -20,7 +20,8 @@ struct HomeView: View {
     /// A section is "completed" when it has items and every item is done.
     /// Empty sections stay in the active bucket — there's nothing to clear.
     private func isSectionCompleted(_ section: CountdownSection) -> Bool {
-        !section.items.isEmpty && section.items.allSatisfy { $0.isCompleted }
+        let items = section.items ?? []
+        return !items.isEmpty && items.allSatisfy { $0.isCompleted }
     }
 
     private var activeSections: [CountdownSection] {
@@ -50,7 +51,7 @@ struct HomeView: View {
     /// Earliest target date across this section's still-unchecked items.
     /// `nil` if the section has no unchecked items.
     private func earliestActiveDate(in section: CountdownSection) -> Date? {
-        section.items
+        (section.items ?? [])
             .filter { !$0.isCompleted }
             .map { $0.targetDate }
             .min()
@@ -69,7 +70,7 @@ struct HomeView: View {
         guard !q.isEmpty else { return [] }
         return sections
             .filter { !$0.isLocked || auth.isUnlocked($0) }
-            .flatMap { $0.items }
+            .flatMap { $0.items ?? [] }
             .filter { item in
                 item.title.lowercased().contains(q)
                     || item.notes.lowercased().contains(q)
@@ -263,7 +264,7 @@ struct HomeView: View {
     }
 
     private func deleteMessage(_ section: CountdownSection) -> String {
-        let count = section.items.count
+        let count = section.items?.count ?? 0
         switch count {
         case 0: return "This section has no countdowns."
         case 1: return "This will also delete 1 countdown in this section."
@@ -339,13 +340,14 @@ private struct SectionSummaryRow: View {
         let lockedAndHidden = section.isLocked && !auth.isUnlocked(section)
         let prefix = lockedAndHidden ? "Locked · " : ""
 
-        if section.items.isEmpty {
+        let allItems = section.items ?? []
+        if allItems.isEmpty {
             return "\(prefix)Empty"
         }
 
         // Active = not marked done (past-deadline items still count — user
         // needs to acknowledge them).
-        let active = section.items
+        let active = allItems
             .filter { !$0.isCompleted }
             .sorted { $0.targetDate < $1.targetDate }
 

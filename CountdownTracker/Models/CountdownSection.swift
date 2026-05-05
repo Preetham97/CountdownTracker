@@ -17,8 +17,12 @@ class CountdownSection {
     /// `CountdownItem.notificationID` uses.
     var stableID: String = UUID().uuidString
 
+    /// CloudKit requires every relationship — including to-many — to be
+    /// optional. Initialized to an empty array so a freshly-created
+    /// section behaves the same as it did before. Read-side call sites
+    /// nil-coalesce to `[]` to keep the rest of the app simple.
     @Relationship(deleteRule: .cascade, inverse: \CountdownItem.section)
-    var items: [CountdownItem] = []
+    var items: [CountdownItem]? = []
 
     init(
         name: String,

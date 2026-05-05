@@ -348,7 +348,7 @@ struct SectionDetailView: View {
     }
 
     private var activeItems: [CountdownItem] {
-        section.items
+        (section.items ?? [])
             .filter { !$0.isCompleted }
             .sorted { $0.targetDate < $1.targetDate }
     }
@@ -356,7 +356,7 @@ struct SectionDetailView: View {
     /// Completed = only items the user has explicitly marked done. Past-deadline
     /// but still-unchecked items live in `activeItems`.
     private var completedItems: [CountdownItem] {
-        section.items
+        (section.items ?? [])
             .filter { $0.isCompleted }
             .sorted { lhs, rhs in
                 let l = lhs.completedAt ?? lhs.targetDate
@@ -373,7 +373,7 @@ struct SectionDetailView: View {
     }
 
     private var deleteMessage: String {
-        let count = section.items.count
+        let count = section.items?.count ?? 0
         switch count {
         case 0: return "This section has no countdowns."
         case 1: return "This will also delete 1 countdown in this section."
