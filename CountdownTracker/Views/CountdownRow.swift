@@ -29,16 +29,22 @@ struct CountdownRow: View {
 
                 Spacer()
 
+                countdownView(at: context.date)
+
                 if !item.isCompleted {
                     // Visual urgency cue mirroring the app icon — a glowing
-                    // red ring that depletes from full (at creation) to
-                    // empty (at the deadline).
-                    CountdownProgressRing(progress: ringProgress(at: context.date))
-                        .frame(width: 26, height: 26)
-                        .padding(.trailing, 2)
+                    // ring that depletes from full (at creation) to empty
+                    // (at the deadline). Tinted with the same red/orange/
+                    // green scheme as the day-count text so urgency reads
+                    // identically in either visual element.
+                    let diff = item.targetDate.timeIntervalSince(context.date)
+                    CountdownProgressRing(
+                        progress: ringProgress(at: context.date),
+                        tint: ringColor(for: diff)
+                    )
+                    .frame(width: 26, height: 26)
+                    .padding(.leading, 2)
                 }
-
-                countdownView(at: context.date)
             }
             .padding(.vertical, 4)
             .opacity(item.isCompleted ? 0.6 : 1.0)
@@ -64,6 +70,17 @@ struct CountdownRow: View {
         }
         guard total > 0 else { return 0 }
         return max(0, min(1, remaining / total))
+    }
+
+    /// Mirrors the day-count text color exactly: red overdue / red < 1d /
+    /// orange < 7d / green ≥ 7d. Kept here rather than reusing
+    /// `countdownDisplay(diff:).color` to avoid recomputing the entire
+    /// CountdownDisplay struct just for the ring tint.
+    private func ringColor(for diff: TimeInterval) -> Color {
+        if diff <= 0 { return .red }
+        if diff < 86400 { return .red }
+        if diff < 7 * 86400 { return .orange }
+        return .green
     }
 
     @ViewBuilder
@@ -129,9 +146,12 @@ struct CountdownRow: View {
 /// glowing red trim that depletes as a deadline approaches. Starts from
 /// the top and unwinds clockwise, like a clock running down.
 private struct CountdownProgressRing: View {
-    /// Fraction of the ring filled in red, clamped to 0...1.
+    /// Fraction of the ring filled, clamped to 0...1.
     /// 1 = full (just created), 0 = deadline reached / past.
     let progress: Double
+    /// Stroke + glow color. Caller passes the same urgency color used by
+    /// the day-count text so the two visual elements stay in sync.
+    let tint: Color
 
     var body: some View {
         ZStack {
@@ -142,17 +162,17 @@ private struct CountdownProgressRing: View {
                     style: StrokeStyle(lineWidth: 3, lineCap: .round)
                 )
 
-            // Red glowing trim — the "remaining" portion. Rotated -90°
-            // so 0% trim starts at the top and grows clockwise, matching
-            // the visual language of a depleting timer.
+            // Glowing trim — the "remaining" portion. Rotated -90° so 0%
+            // trim starts at the top and grows clockwise, matching the
+            // visual language of a depleting timer.
             Circle()
                 .trim(from: 0, to: max(0, min(1, progress)))
                 .stroke(
-                    Color.red,
+                    tint,
                     style: StrokeStyle(lineWidth: 3, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-                .shadow(color: Color.red.opacity(0.7), radius: 2.5)
+                .shadow(color: tint.opacity(0.7), radius: 2.5)
                 .animation(.easeInOut(duration: 0.4), value: progress)
         }
     }
