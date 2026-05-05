@@ -11,6 +11,28 @@ struct CountdownRow: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             HStack(alignment: .center, spacing: 12) {
+                // Leading ring doubles as the completion toggle — sits where
+                // users instinctively look for a checkbox in a todo-style
+                // list. Active state: depleting urgency ring (green/orange/
+                // red). Completed state: solid green disc + white check,
+                // mirroring Apple Watch Activity-ring goal closure.
+                let diff = item.targetDate.timeIntervalSince(context.date)
+                Button {
+                    onToggleCompletion?()
+                } label: {
+                    CountdownProgressRing(
+                        progress: ringProgress(at: context.date),
+                        tint: ringColor(for: diff),
+                        isCompleted: item.isCompleted
+                    )
+                    .frame(width: 34, height: 34)
+                    .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(item.isCompleted
+                    ? "Reopen \(item.title)"
+                    : "Mark \(item.title) as done")
+
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text(item.title)
@@ -35,29 +57,6 @@ struct CountdownRow: View {
                 Spacer()
 
                 countdownView(at: context.date)
-
-                // The ring is both an urgency indicator AND the completion
-                // toggle, replacing the previous left-side checkbox circle.
-                // - Active item: app-icon-style depleting ring, tinted by
-                //   urgency (green/orange/red).
-                // - Completed item: filled green disc with a checkmark.
-                // Tap toggles state in either direction.
-                let diff = item.targetDate.timeIntervalSince(context.date)
-                Button {
-                    onToggleCompletion?()
-                } label: {
-                    CountdownProgressRing(
-                        progress: ringProgress(at: context.date),
-                        tint: ringColor(for: diff),
-                        isCompleted: item.isCompleted
-                    )
-                    .frame(width: 34, height: 34)
-                    .contentShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(item.isCompleted
-                    ? "Reopen \(item.title)"
-                    : "Mark \(item.title) as done")
             }
             .padding(.vertical, 4)
             .opacity(item.isCompleted ? 0.6 : 1.0)
