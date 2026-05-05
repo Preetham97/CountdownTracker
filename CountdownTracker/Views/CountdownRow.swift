@@ -2,6 +2,11 @@ import SwiftUI
 
 struct CountdownRow: View {
     let item: CountdownItem
+    /// Tap callback for the trailing ring. The ring doubles as the
+    /// completion toggle (replacing the previous left-side checkbox), so
+    /// the parent row supplies what to do when the user taps it. Optional
+    /// for previews / static contexts that don't need the action.
+    var onToggleCompletion: (() -> Void)? = nil
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -31,20 +36,28 @@ struct CountdownRow: View {
 
                 countdownView(at: context.date)
 
-                if !item.isCompleted {
-                    // Visual urgency cue mirroring the app icon — a glowing
-                    // ring that depletes from full (at creation) to empty
-                    // (at the deadline). Tinted with the same red/orange/
-                    // green scheme as the day-count text so urgency reads
-                    // identically in either visual element.
-                    let diff = item.targetDate.timeIntervalSince(context.date)
+                // The ring is both an urgency indicator AND the completion
+                // toggle, replacing the previous left-side checkbox circle.
+                // - Active item: app-icon-style depleting ring, tinted by
+                //   urgency (green/orange/red).
+                // - Completed item: filled green disc with a checkmark.
+                // Tap toggles state in either direction.
+                let diff = item.targetDate.timeIntervalSince(context.date)
+                Button {
+                    onToggleCompletion?()
+                } label: {
                     CountdownProgressRing(
                         progress: ringProgress(at: context.date),
-                        tint: ringColor(for: diff)
+                        tint: ringColor(for: diff),
+                        isCompleted: item.isCompleted
                     )
-                    .frame(width: 26, height: 26)
-                    .padding(.leading, 2)
+                    .frame(width: 34, height: 34)
+                    .contentShape(Circle())
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(item.isCompleted
+                    ? "Reopen \(item.title)"
+                    : "Mark \(item.title) as done")
             }
             .padding(.vertical, 4)
             .opacity(item.isCompleted ? 0.6 : 1.0)
@@ -149,31 +162,50 @@ private struct CountdownProgressRing: View {
     /// Fraction of the ring filled, clamped to 0...1.
     /// 1 = full (just created), 0 = deadline reached / past.
     let progress: Double
-    /// Stroke + glow color. Caller passes the same urgency color used by
-    /// the day-count text so the two visual elements stay in sync.
+    /// Stroke + glow color for the active state. Caller passes the same
+    /// urgency color used by the day-count text so the two visual
+    /// elements stay in sync.
     let tint: Color
+    /// When true, the ring renders as a "closed" goal: solid green disc
+    /// with a white checkmark, mirroring the Apple Watch Activity-ring
+    /// completion state. When false, the ring shows the active depleting
+    /// trim over a gray track.
+    let isCompleted: Bool
 
     var body: some View {
         ZStack {
-            // Gray track underneath — the "empty" portion of the ring.
-            Circle()
-                .stroke(
-                    Color.gray.opacity(0.25),
-                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                )
+            if isCompleted {
+                // Closed-goal look: solid green fill + white check. The
+                // outline preserves the ring silhouette so the row's
+                // visual mass doesn't shift between active and done.
+                Circle()
+                    .fill(Color.green)
+                    .shadow(color: Color.green.opacity(0.55), radius: 2.5)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 14, weight: .heavy))
+                    .foregroundStyle(.white)
+            } else {
+                // Gray track underneath — the "empty" portion of the ring.
+                Circle()
+                    .stroke(
+                        Color.gray.opacity(0.25),
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                    )
 
-            // Glowing trim — the "remaining" portion. Rotated -90° so 0%
-            // trim starts at the top and grows clockwise, matching the
-            // visual language of a depleting timer.
-            Circle()
-                .trim(from: 0, to: max(0, min(1, progress)))
-                .stroke(
-                    tint,
-                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-                .shadow(color: tint.opacity(0.7), radius: 2.5)
-                .animation(.easeInOut(duration: 0.4), value: progress)
+                // Glowing trim — the "remaining" portion. Rotated -90° so
+                // 0% trim starts at the top and grows clockwise, matching
+                // the visual language of a depleting timer.
+                Circle()
+                    .trim(from: 0, to: max(0, min(1, progress)))
+                    .stroke(
+                        tint,
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .shadow(color: tint.opacity(0.7), radius: 2.5)
+                    .animation(.easeInOut(duration: 0.4), value: progress)
+            }
         }
+        .animation(.spring(response: 0.35, dampingFraction: 0.7), value: isCompleted)
     }
 }

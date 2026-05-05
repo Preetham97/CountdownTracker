@@ -237,22 +237,14 @@ struct SectionDetailView: View {
 
     @ViewBuilder
     private func row(for item: CountdownItem) -> some View {
-        HStack(spacing: 12) {
-            Button {
-                toggleCompletion(item)
-            } label: {
-                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
-                    .foregroundStyle(item.isCompleted ? Color.green.opacity(0.7) : .secondary)
-                    .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(item.isCompleted ? "Reopen \(item.title)" : "Mark \(item.title) as done")
-
-            CountdownRow(item: item)
-                .contentShape(Rectangle())
-                .onTapGesture { itemToEdit = item }
-        }
+        // The trailing ring inside CountdownRow now doubles as the
+        // completion toggle, replacing the previous left-side checkbox
+        // — see CountdownRow's `onToggleCompletion` callback. Tap on the
+        // body of the row still opens the edit sheet; the ring's own
+        // Button stops the tap from bubbling up to the row gesture.
+        CountdownRow(item: item, onToggleCompletion: { toggleCompletion(item) })
+            .contentShape(Rectangle())
+            .onTapGesture { itemToEdit = item }
         .listRowBackground(
             itemToDelete?.persistentModelID == item.persistentModelID
                 ? Color.red.opacity(0.12)
